@@ -63,31 +63,6 @@ const DraggableIcon = ({
     }
   }, [name]);
 
-  
-
-  const handleTouchStart = (event) => {
-    const touch = event.touches[0];
-    setTouchStartTime(Date.now());
-    setTouchStartPosition({ x: touch.clientX, y: touch.clientY });
-  };
-
-  const handleTouchEnd = (event) => {
-    const touchEndTime = Date.now();
-    const touch = event.changedTouches[0];
-    const touchEndPosition = { x: touch.clientX, y: touch.clientY };
-
-    const timeDiff = touchEndTime - touchStartTime;
-    const distance = Math.sqrt(
-      Math.pow(touchEndPosition.x - touchStartPosition.x, 2) +
-      Math.pow(touchEndPosition.y - touchStartPosition.y, 2)
-    );
-
-    if (timeDiff < 200 && distance < 10) {
-      // This is considered a tap
-      onClick(event);
-    }
-  };
-
   const getTextTopPosition = () => {
     switch (type) {
       case 'folder':
@@ -172,8 +147,6 @@ const DraggableIcon = ({
         {...attributes}
         onDoubleClick={onDoubleClick}
         onClick={onClick}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
         className={`${className} ${selected ? 'selected' : ''}`}
       >
         {type === 'folder' && isOpen ? <OpenFolderIcon /> : children}
