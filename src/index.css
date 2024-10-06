@@ -132,6 +132,7 @@ body {
 .window-pane {
   font-family: Geneva_9;
   font-size: 24px;
+  height: 100%;
 }
 
 .desktop-background {
@@ -144,6 +145,22 @@ body {
   z-index: -1; /* Ensure it's behind everything else */
 }
 
+
+
+/* @media (hover: hover) and (pointer: fine) {
+  .menu-item a:hover {
+    background-color: black;
+    color: white;
+  }
+} */
+
+.menu-bar, .menu-bar * {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
 /* Initial state: dropdown menus are hidden */
 ul[role="menu"] {
   display: none;
@@ -154,6 +171,7 @@ ul[role="menu"] {
 li[role="menu-item"] {
   margin: 0 0;
   padding: 0 0;
+  
   width: 100%;
   text-wrap: nowrap;
   z-index: 10000;
@@ -163,6 +181,7 @@ li[role="menu-item"] {
 li[role="menu-item"]:hover > ul[role="menu"],
 li[role="menu-item"]:focus-within > ul[role="menu"] {
   display: block;
+  
 }
 
 .apple {
@@ -310,3 +329,14 @@ ul [role=menu-item].divider:after {
 .html-content {
   pointer-events: auto !important;
 }
+
+.alert-box .inner-border {
+  height: calc(100% - 6px);
+}
+
+.alert-text {
+  font-family: Chicago_12;
+}
+
+
+

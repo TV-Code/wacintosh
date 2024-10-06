@@ -1,16 +1,14 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   DndContext,
-  useDraggable,
   useDroppable,
-  DragOverlay,
   PointerSensor,
   useSensor,
   useSensors,
-  TouchSensor,
 } from "@dnd-kit/core";
 import { produce } from "immer";
 import Window from "./Window";
+import AlertIcon from "../assets/AlertIcon.svg?react";
 import WacPicassoLogo from "../assets/WacPicassoLogo.png";
 import FolderIcon from "../assets/Folder.svg?react";
 import EnvironmentIcon from "../assets/Environment.svg?react";
@@ -78,6 +76,9 @@ const System1 = ({
   const [openMenu, setOpenMenu] = useState(null);
   const [activeMenuItem, setActiveMenuItem] = useState(null);
   const menuStateRef = useRef({ openMenu: null, activeMenuItem: null });
+  const isMouseDownRef = useRef(false);
+  const [isMenuInteraction, setIsMenuInteraction] = useState(false);
+
 
   const [overFolderId, setOverFolderId] = useState(null);
   const [draggedIcon, setDraggedIcon] = useState(null);
@@ -89,6 +90,8 @@ const System1 = ({
 
   const [trashContents, setTrashContents] = useState([]);
   const [trashSize, setTrashSize] = useState(0);
+
+  const [alertMessage, setAlertMessage] = useState(null);
 
   const initialIcons = [
     {
@@ -277,22 +280,6 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
   }, [taskCompleted]);
 
   useEffect(() => {
-    const logTouchEvent = (e) => {
-      console.log("Touch event:", e.type);
-    };
-
-    document.addEventListener("touchstart", logTouchEvent);
-    document.addEventListener("touchmove", logTouchEvent);
-    document.addEventListener("touchend", logTouchEvent);
-
-    return () => {
-      document.removeEventListener("touchstart", logTouchEvent);
-      document.removeEventListener("touchmove", logTouchEvent);
-      document.removeEventListener("touchend", logTouchEvent);
-    };
-  }, []);
-
-  useEffect(() => {
     const updateBounds = () => {
       if (desktopRef.current) {
         const bounds = desktopRef.current.getBoundingClientRect();
@@ -314,16 +301,6 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
     return () => window.removeEventListener("resize", updateBounds);
   }, [desktopRef]);
 
-  useEffect(() => {
-    let currentElement = screenRef.current;
-    while (currentElement) {
-      currentElement.addEventListener('click', (e) => {
-        console.log('Element clicked:', currentElement);
-      });
-      currentElement = currentElement.parentElement;
-    }
-  }, [screenRef]);
-
   const bootSequence = () => {
     setTimeout(() => setBootStage(1), 1000); // Show checkered background
     setTimeout(() => setBootStage(2), 2000); // Show welcome window
@@ -331,24 +308,46 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
     setTimeout(() => setBootStage(4), 6000); // Show icons (fully booted)
   };
 
-  const handleMenuMouseDown = (menuName, event) => {
+  const handleMenuActivation = useCallback((menuName, event) => {
     event.preventDefault();
-    setOpenMenu(menuName);
+    setOpenMenu(prevMenu => prevMenu === menuName ? null : menuName);
     menuStateRef.current.openMenu = menuName;
-  };
+  }, []);
 
+  const handleMenuItemActivation = useCallback((menuName, itemName, event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  event.nativeEvent.stopImmediatePropagation();
+
+  setIsMenuInteraction(true);
+
+  // Set the active menu item to highlight it
+  setActiveMenuItem(itemName);
+  menuStateRef.current.activeMenuItem = itemName;
+
+  // Delay the action slightly to allow the highlight to show
+  setTimeout(() => {
+    handleMenuItemClick(menuName, itemName);
+
+    setTimeout(() => {
+      setIsMenuInteraction(false);
+    }, 250); // Adjust the delay as needed
+  }, 100); // Adjust the delay as needed
+}, []);
+
+  
   const handleMenuMouseEnter = (menuName) => {
     if (openMenu) {
       setOpenMenu(menuName);
       menuStateRef.current.openMenu = menuName;
     }
   };
-
+  
   const handleMenuItemMouseEnter = (itemName) => {
     setActiveMenuItem(itemName);
     menuStateRef.current.activeMenuItem = itemName;
   };
-
+  
   const handleGlobalMouseUp = useCallback((event) => {
     const { openMenu, activeMenuItem } = menuStateRef.current;
     if (openMenu) {
@@ -360,7 +359,7 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
       menuStateRef.current = { openMenu: null, activeMenuItem: null };
     }
   }, []);
-
+  
   useEffect(() => {
     document.addEventListener("mouseup", handleGlobalMouseUp);
     return () => {
@@ -369,10 +368,14 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
   }, [handleGlobalMouseUp]);
 
   const handleClick = (id, parentId = null, event) => {
+    if (isMenuInteraction) {
+      // If a menu interaction is happening, ignore clicks on the desktop or icons
+      return;
+    }
     console.log("handleClick", id, parentId);
     if (event) {
-      event.stopPropagation();
       event.preventDefault();
+      event.stopPropagation();
     }
     if (id === null && parentId === null) {
       // Clicked on desktop background
@@ -394,7 +397,7 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
         const isWindowId = id.startsWith("window-");
 
         if (isDragging) {
-          newZIndex = DRAGGING_Z_INDEX;
+          newZIndex = BASE_DESKTOP_ICON_Z_INDEX;
         } else if (isWindow || isWindowId) {
           if (isActive) {
             newZIndex = Math.min(
@@ -537,35 +540,6 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
       setReadMeStage("final");
     }
   };
-
-  const handleTouch = useCallback(
-    (event) => {
-      const touch = event.touches[0];
-      const target = document.elementFromPoint(touch.clientX, touch.clientY);
-      if (target) {
-        const iconElement = target.closest(".icon");
-        if (iconElement) {
-          const iconId = iconElement.getAttribute("data-id");
-          const parentId = iconElement.getAttribute("data-parent-id");
-          handleClick(iconId, parentId, event);
-        }
-      }
-    },
-    [handleClick]
-  );
-
-  useEffect(() => {
-    const element = document.querySelector(".desktop");
-    if (element) {
-      element.addEventListener("touchstart", handleTouch);
-      element.addEventListener("touchend", handleTouch);
-
-      return () => {
-        element.removeEventListener("touchstart", handleTouch);
-        element.removeEventListener("touchend", handleTouch);
-      };
-    }
-  }, [handleTouch]);
 
   const handleDragStart = (event) => {
     const { active } = event;
@@ -849,12 +823,17 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
   const handleDragOver = (event) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const targetId = over.id.startsWith("window-")
-        ? over.id.split("-")[1]
-        : over.id;
-      setOverFolderId(targetId);
-      console.log(targetId)
+      const overId = over.id;
+      const activeId = active.id;
+  
+      if (overId.startsWith('window-')) {
+        // We are over a window, do not set overFolderId
+        setOverFolderId(null);
+      } else {
+        setOverFolderId(overId);
+      }
     } else {
+      // Reset overFolderId
       setOverFolderId(null);
       // Remove highlight from all windows
       setOpenWindows((prev) =>
@@ -869,6 +848,7 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
   };
 
   const handleDoubleClick = (id, parentId = null) => {
+
     const icon = parentId ? findIconById(icons, parentId) : null;
     let targetIcon;
 
@@ -921,7 +901,7 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
       if (taskCompleted) {
         runEnvBuild();
       } else {
-        alert(
+        setAlertMessage(
           "Please organize all files before running the Environment application."
         );
       }
@@ -953,101 +933,112 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
     }));
   };
 
-  const handleMenuItemClick = (menuName, itemName) => {
-    if (menuName === "File" && itemName === "New") {
-      // Check if Recovery folder or any of its files already exist anywhere in the system
-      const recoveryFilesExist = icons.some(
-        (icon) =>
-          icon.id === "recovery-folder" ||
-          icon.id === "system-file1" ||
-          icon.id === "system-file2" ||
-          icon.id === "boot-file" ||
-          (icon.items &&
-            icon.items.some(
-              (item) =>
-                item.id === "recovery-folder" ||
-                item.id === "system-file1" ||
-                item.id === "system-file2" ||
-                item.id === "boot-file"
-            ))
-      );
-
-      if (!recoveryFilesExist) {
-        const hiddenFiles = revealHiddenFiles("folder", "recovery-folder");
-        setIcons((prevIcons) => [
-          ...prevIcons,
-          {
-            id: "recovery-folder",
-            content: <FolderIcon />,
-            name: "Recovery",
-            position: { x: 470, y: 40 },
-            type: "folder",
-            items: hiddenFiles,
-          },
-        ]);
-      } else {
-        alert("Recovery folder or its files already exist in the system.");
+  const iconExists = (iconsArray, idToCheck) => {
+    for (const icon of iconsArray) {
+      if (icon.id === idToCheck) {
+        return true;
       }
-      setReadMeStage("afterRecovery");
-    } else if (menuName === "Special" && itemName === "Empty Trash") {
-      setIcons((prevIcons) => {
-        const trashIcon = prevIcons.find((icon) => icon.id === "trash");
-        const recoveryFolderInTrash =
-          trashIcon &&
-          trashIcon.items.some((item) => item.id === "recovery-folder");
-
-        let newHiddenFiles = [];
-        if (recoveryFolderInTrash) {
-          newHiddenFiles = revealHiddenFiles("trash", "trash");
-
-          // Check if any of the new hidden files already exist in the system
-          const newFilesExist = prevIcons.some((icon) =>
-            newHiddenFiles.some(
-              (newFile) =>
-                icon.id === newFile.id ||
-                (icon.items &&
-                  icon.items.some((item) => item.id === newFile.id))
-            )
-          );
-
-          if (newFilesExist) {
-            alert(
-              "Cannot reveal hidden files. Some files already exist in the system."
-            );
-            newHiddenFiles = [];
-          }
+      if (icon.items && icon.items.length > 0) {
+        if (iconExists(icon.items, idToCheck)) {
+          return true;
         }
-
-        const updatedTrashIcon = {
-          ...trashIcon,
-          items: newHiddenFiles,
-        };
-
-        return prevIcons.map((icon) =>
-          icon.id === "trash" ? updatedTrashIcon : icon
-        );
-      });
-
-      setOpenWindows((prev) => {
-        if (prev.trash && prev.trash.isOpen) {
-          return {
-            ...prev,
-            trash: {
-              ...prev.trash,
-              items: [],
-            },
-          };
-        }
-        return prev;
-      });
-
-      setTrashContents([]);
-      setTrashSize(0);
-      setRecoveryInTrash(false);
-      setReadMeStage("afterEmptyTrash");
+      }
     }
+    return false;
+  };
+
+  const handleMenuItemClick = (menuName, itemName) => {
+    console.log("handleMenuItemClick", menuName, itemName)
     setOpenMenu(null);
     setActiveMenuItem(null);
+    menuStateRef.current = { openMenu: null, activeMenuItem: null };
+    isMouseDownRef.current = false;
+
+    requestAnimationFrame(() => {
+      if (menuName === "File" && itemName === "New") {
+        const iconExists = (iconsToCheck, id) => {
+          return iconsToCheck.some(icon => 
+            icon.id === id || 
+            (icon.items && iconExists(icon.items, id))
+          );
+        };
+  
+        setIcons(prevIcons => {
+          const recoveryFilesExist = ["recovery-folder", "system-file1", "system-file2", "boot-file"]
+            .some(id => iconExists(prevIcons, id));
+  
+          if (!recoveryFilesExist) {
+            const hiddenFiles = revealHiddenFiles("folder", "recovery-folder");
+            if (iconExists(prevIcons, "recovery-folder")) {
+              setAlertMessage("Recovery folder already exists.");
+              return prevIcons;
+            }
+            setReadMeStage("afterRecovery");
+            return [
+              ...prevIcons,
+              {
+                id: "recovery-folder",
+                content: <FolderIcon />,
+                name: "Recovery",
+                position: { x: 470, y: 40 },
+                type: "folder",
+                items: hiddenFiles,
+              },
+            ];
+          } else {
+            setAlertMessage("Recovery folder or its files already exist in the system.");
+            return prevIcons;
+          }
+        });
+      } else if (menuName === "Special" && itemName === "Empty Trash") {
+        setIcons(prevIcons => {
+          const trashIcon = prevIcons.find(icon => icon.id === "trash");
+          const recoveryFolderInTrash = trashIcon && trashIcon.items.some(item => item.id === "recovery-folder");
+          
+          let newHiddenFiles = [];
+          let shouldShowAlert = false;
+  
+          if (recoveryFolderInTrash) {
+            newHiddenFiles = revealHiddenFiles("trash", "trash");
+            const newFilesExist = prevIcons.some(icon =>
+              newHiddenFiles.some(newFile =>
+                icon.id === newFile.id ||
+                (icon.items && icon.items.some(item => item.id === newFile.id))
+              )
+            );
+  
+            if (newFilesExist) {
+              shouldShowAlert = true;
+              newHiddenFiles = [];
+            }
+          }
+  
+          if (shouldShowAlert) {
+            setAlertMessage("Cannot reveal hidden files. Some files already exist in the system.");
+            return prevIcons;
+          }
+  
+          const updatedTrashIcon = {
+            ...trashIcon,
+            items: newHiddenFiles,
+          };
+  
+          // Update related states only if we're actually emptying the trash
+          updateTrashContents(newHiddenFiles);
+          setOpenWindows(prev => ({
+            ...prev,
+            trash: prev.trash ? {
+              ...prev.trash,
+              items: newHiddenFiles,
+            } : prev.trash
+          }));
+          setReadMeStage("afterEmptyTrash");
+          setRecoveryInTrash(false);
+  
+          return prevIcons.map(icon => icon.id === "trash" ? updatedTrashIcon : icon);
+        });
+      }
+    }, [setIcons, updateTrashContents, setOpenWindows, setReadMeStage, setRecoveryInTrash, setAlertMessage]);
   };
 
   const DebugOverlay = ({ screenDimensions }) => {
@@ -1084,6 +1075,10 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
     );
   };
 
+  const closeAlertBox = () => {
+    setAlertMessage(null); 
+  }
+
   const closeWindow = (id) => {
     setOpenWindows((prev) => ({
       ...prev,
@@ -1099,12 +1094,6 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
           distance: 5,
         },
       },
-      useSensor(TouchSensor, {
-        activationConstraint: {
-          delay: 100,
-          tolerance: 5,
-        },
-      })
     )
   );
 
@@ -1120,9 +1109,9 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
         touchAction: "none",
       }}
     >
-      
       {bootStage >= 1 && (
         <div className="screen" ref={screenRef}>
+          <>
           <DndContext
             sensors={sensors}
             onDragEnd={handleDragEnd}
@@ -1188,513 +1177,85 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
                     </h2>
                   </div>
                 )}
-
-                {bootStage >= 3 && (
-                  <div
-                    className="menu-bar"
+  
+  {bootStage >= 3 && (
+  <div
+    className="menu-bar"
+    style={{
+      position: "relative",
+      zIndex: "100000",
+      borderBottom: "2px solid black",
+      padding: "2px 0",
+      backgroundColor: "#fff",
+      width: "100%",
+      height: MENU_BAR_HEIGHT,
+    }}
+  >
+    <ul role="menu-bar">
+      <li
+        className="menu-item"
+        role="menu-item"
+        style={{ marginLeft: "20px" }}
+      >
+        <span
+          className="apple"
+          onClick={zoomOut}
+          style={{
+            backgroundSize: "contain",
+            width: "22px",
+            height: "22px",
+            bottom: "2px",
+          }}
+        ></span>
+      </li>
+      {["File", "Edit", "View", "Special"].map((menuName) => (
+        <li
+          key={menuName}
+          className="menu-item"
+          role="menu-item"
+          aria-haspopup="true"
+          onMouseDown={(e) => handleMenuActivation(menuName, e)}
+          onTouchStart={(e) => handleMenuActivation(menuName, e)}
+          onMouseEnter={() => handleMenuMouseEnter(menuName)}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.nativeEvent.stopImmediatePropagation();
+          }}
+        >
+          <span className="menu-text">{menuName}</span>
+          {openMenu === menuName && (
+            <ul role="menu">
+              {getMenuItems(menuName).map((item) => (
+                <li
+                  key={item}
+                  role="menu-item"
+                  className={item === "Save" || item === "Undo" || item === "Select All" ? "divider" : ""}
+                  onMouseEnter={() => handleMenuItemMouseEnter(item)}
+                  onMouseDown={(e) => handleMenuItemActivation(menuName, item, e)}
+                  onTouchStart={(e) => handleMenuItemActivation(menuName, item, e)}
+                >
+                  <a
+                    href="#menu"
+                    // onClick={(e) => e.preventDefault()}
                     style={{
-                      position: "relative",
-                      zIndex: "100000",
-                      borderBottom: "2px solid black",
-                      padding: "2px 0",
-                      backgroundColor: "#fff",
-                      width: "100%",
-                      height: MENU_BAR_HEIGHT,
+                      backgroundColor: activeMenuItem === item ? "black" : "white",
+                      color: activeMenuItem === item ? "white" : "black",
+                      textDecoration: 'none',
                     }}
                   >
-                    <ul role="menu-bar">
-                      <li
-                        className="menu-item"
-                        role="menu-item"
-                        style={{ marginLeft: "20px" }}
-                      >
-                        <span
-                          className="apple"
-                          onMouseDown={zoomOut}
-                          style={{
-                            backgroundSize: "contain",
-                            width: "22px",
-                            height: "22px",
-                            bottom: "2px",
-                          }}
-                        ></span>
-                      </li>
-                      <li
-                        className="menu-item"
-                        role="menu-item"
-                        aria-haspopup="true"
-                        onMouseDown={(e) => handleMenuMouseDown("File", e)}
-                        onMouseEnter={() => handleMenuMouseEnter("File")}
-                      >
-                        <span className="menu-text">File</span>
-                        {openMenu === "File" && (
-                          <ul role="menu">
-                            <li
-                              role="menu-item"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("New")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "New"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "New"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                New
-                              </a>
-                            </li>
-                            <li
-                              role="menu-item"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("Open")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "Open"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "Open"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                Open
-                              </a>
-                            </li>
-                            <li
-                              role="menu-item"
-                              className="divider"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("Save")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "Save"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "Save"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                Save
-                              </a>
-                            </li>
-                            <li
-                              role="menu-item"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("Other")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "Other"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "Other"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                Other
-                              </a>
-                            </li>
-                          </ul>
-                        )}
-                      </li>
-                      <li
-                        className="menu-item"
-                        role="menu-item"
-                        onMouseDown={(e) => handleMenuMouseDown("Edit", e)}
-                        onMouseEnter={() => handleMenuMouseEnter("Edit")}
-                      >
-                        <span className="menu-text">Edit</span>
-                        {openMenu === "Edit" && (
-                          <ul role="menu">
-                            <li
-                              role="menu-item"
-                              className="divider"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("Undo")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "Undo"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "Undo"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                Undo
-                              </a>
-                            </li>
-                            <li
-                              role="menu-item"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("Cut")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "Cut"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "Cut"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                Cut
-                              </a>
-                            </li>
-                            <li
-                              role="menu-item"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("Copy")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "Copy"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "Copy"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                Copy
-                              </a>
-                            </li>
-                            <li
-                              role="menu-item"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("Paste")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "Paste"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "Paste"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                Paste
-                              </a>
-                            </li>
-                            <li
-                              role="menu-item"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("Clear")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "Clear"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "Clear"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                Clear
-                              </a>
-                            </li>
-                            <li
-                              role="menu-item"
-                              className="divider"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("Select All")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "Select All"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "Select All"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                Select All
-                              </a>
-                            </li>
-                            <li
-                              role="menu-item"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("Show Clipboard")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "Show Clipboard"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "Show Clipboard"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                Show Clipboard
-                              </a>
-                            </li>
-                          </ul>
-                        )}
-                      </li>
-                      <li
-                        className="menu-item"
-                        role="menu-item"
-                        onMouseDown={(e) => handleMenuMouseDown("View", e)}
-                        onMouseEnter={() => handleMenuMouseEnter("View")}
-                      >
-                        <span className="menu-text">View</span>
-                        {openMenu === "View" && (
-                          <ul role="menu">
-                            <li
-                              role="menu-item"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("by Icon")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "by Icon"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "by Icon"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                by Icon
-                              </a>
-                            </li>
-                            <li
-                              role="menu-item"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("by Name")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "by Name"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "by Name"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                by Name
-                              </a>
-                            </li>
-                            <li
-                              role="menu-item"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("by Date")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "by Date"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "by Date"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                by Date
-                              </a>
-                            </li>
-                            <li
-                              role="menu-item"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("by Size")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "by Size"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "by Size"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                by Size
-                              </a>
-                            </li>
-                            <li
-                              role="menu-item"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("by Kind")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "by Kind"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "by Kind"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                by Kind
-                              </a>
-                            </li>
-                          </ul>
-                        )}
-                      </li>
-                      <li
-                        className="menu-item"
-                        role="menu-item"
-                        onMouseDown={(e) => handleMenuMouseDown("Special", e)}
-                        onMouseEnter={() => handleMenuMouseEnter("Special")}
-                      >
-                        <span className="menu-text">Special</span>
-                        {openMenu === "Special" && (
-                          <ul role="menu">
-                            <li
-                              role="menu-item"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("Clean Up")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "Clean Up"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "Clean Up"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                Clean Up
-                              </a>
-                            </li>
-                            <li
-                              role="menu-item"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("Empty Trash")
-                              }
-                              onClick={() =>
-                                handleMenuItemClick("Special", "Empty Trash")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "Empty Trash"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "Empty Trash"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                Empty Trash
-                              </a>
-                            </li>
-                            <li
-                              role="menu-item"
-                              onMouseEnter={() =>
-                                handleMenuItemMouseEnter("Erase Disk")
-                              }
-                            >
-                              <a
-                                href="#menu"
-                                style={{
-                                  backgroundColor:
-                                    activeMenuItem === "Erase Disk"
-                                      ? "black"
-                                      : "white",
-                                  color:
-                                    activeMenuItem === "Erase Disk"
-                                      ? "white"
-                                      : "black",
-                                }}
-                              >
-                                Erase Disk
-                              </a>
-                            </li>
-                          </ul>
-                        )}
-                      </li>
-                    </ul>
-                  </div>
-                )}
+                    {item}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
+  
                 {bootStage >= 4 && (
                   <>
                     <DebugOverlay screenDimensions={screenDimensions} />
@@ -1724,7 +1285,7 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
                     ))}
                     {Object.entries(openWindows).map(
                       ([id, windowData]) =>
-                        windowData.isOpen && (
+                        windowData && windowData.isOpen && (
                           <Window
                             key={id}
                             id={id}
@@ -1818,29 +1379,7 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
               zIndex: 10000,
             }}
           ></div>
-          {openWindows["about"] && (
-            <Window
-              id="about"
-              title="About This Macintosh"
-              onClose={() => closeWindow("about")}
-              style={{
-                width: "250px",
-                height: "150px",
-                left: "50%",
-                top: "50%",
-                transform: "translate(-50%, -50%)",
-              }}
-              zIndex={windowZIndex["about"] || 0}
-            >
-              <div style={{ padding: "10px", fontSize: "12px" }}>
-                <p>
-                  <strong>Wacintosh 128K</strong>
-                </p>
-                <p>System Software 1.0</p>
-                <p>© 1984 Guava Computer, Inc.</p>
-              </div>
-            </Window>
-          )}
+          </>
           {taskCompleted && completedWindowTimer && (
             <div
               style={{
@@ -1860,10 +1399,88 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
               </p>
             </div>
           )}
+          {alertMessage && (
+            <div className="alert-box outer-border" style={{
+              width: '48rem',
+              height: '13rem',
+              position: 'absolute',
+              top: '35%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 10000,
+              display: 'flex',
+              flexDirection: 'column',
+            }}>
+              <div className="inner-border" style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                padding: '1 rem',
+              }}>
+                <div className="alert-contents" style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                }}>
+                  <div className="square" style={{
+                    marginLeft: '3.2rem',
+                    marginTop: '1rem',
+                  }}>
+                    <AlertIcon style={{
+                      width: '64px',
+                      height: '64px',
+                      objectFit: 'contain'
+                    }}/>
+                  </div>
+                  <p className="alert-text" style={{
+                    fontSize: '2rem',
+                    marginTop: '0.75rem',
+                    marginLeft: '4rem',
+                  }}>
+                    {alertMessage}
+                  </p>
+                </div>
+                <div style={{
+                  marginBottom: '1.5rem',
+                  marginLeft: '2.5rem',
+                }}>
+                  <button
+                    className="btn"
+                    onClick={closeAlertBox}
+                    style={{
+                      width: '110px',
+                      height: '30px',
+                      fontSize: '24px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    OK
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
+};
+
+const getMenuItems = (menuName) => {
+  switch (menuName) {
+    case "File":
+      return ["New", "Open", "Close", "Save", "Print", "Quit"];
+    case "Edit":
+      return ["Undo", "Cut", "Copy", "Paste", "Clear", "Select All"];
+    case "View":
+      return ["by Icon", "by Name", "by Date", "by Size", "by Kind"];
+    case "Special":
+      return ["Clean Up", "Empty Trash", "Erase Disk"];
+    default:
+      return [];
+  }
 };
 
 export default System1;

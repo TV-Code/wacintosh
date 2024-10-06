@@ -1,31 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-
-const OpenFolderIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 62 62">
-    <defs>
-      <pattern id="pixelPattern" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="translate(2,0)">
-        <rect width="8" height="8" fill="white"/>
-        <rect x="0" y="2" width="2" height="2" fill="black"/>
-        <rect x="0" y="6" width="2" height="2" fill="black"/>
-        <rect x="4" y="0" width="2" height="2" fill="black"/>
-        <rect x="4" y="4" width="2" height="2" fill="black"/>
-      </pattern>
-    </defs>
-    
-    {/* White background for the entire folder */}
-    <path d="M2 16L62 16L62 54L2 54Z
-             M6 12L26 12L26 16L6 16Z
-             M8 10L24 10L24 13L8 13Z" 
-          fill="white"/>
-    
-    {/* Offset columns pixelated pattern overlay */}
-    <path d="M2 16L62 16L62 54L2 54Z
-             M6 12L26 12L26 16L6 16Z
-             M8 10L24 10L24 13L8 13Z" 
-          fill="url(#pixelPattern)"/>
-  </svg>
-);
+import OpenFolderIcon from '../assets/OpenFolderIcon.svg?react';
 
 const DraggableIcon = ({
   id,

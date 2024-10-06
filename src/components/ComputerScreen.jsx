@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import { DndProvider } from "react-dnd";
@@ -9,6 +9,7 @@ import { useCameraControl } from "./CameraControlContext";
 
 export default function ComputerScreen({ isLookingAtComputer }) {
   const [textTexture, setTextTexture] = useState();
+  const isIOS = useMemo(() => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream, []);
   const { zoomOut, runEnvBuild } = useCameraControl();
   const screenRef = useRef();
   const meshRef = useRef();
@@ -23,26 +24,20 @@ export default function ComputerScreen({ isLookingAtComputer }) {
   });
 
   // useEffect(() => {
-  //   if (htmlRef.current) {
-  //     // Traverse up the DOM tree to reach the great-grandparent
-  //     const wrapper = htmlRef.current.parentElement;
-  //     const grandparent = wrapper?.parentElement;
-  //     const greatGrandparent = grandparent?.parentElement;
-
-  //     console.log('Great-Grandparent:', greatGrandparent);
-
-  //     if (greatGrandparent && greatGrandparent.style.pointerEvents === 'none') {
-  //       // Set pointer-events to auto for the great-grandparent
-  //       greatGrandparent.style.pointerEvents = 'auto';
-  //       grandparent.style.pointerEvents = 'auto';
-
-  //       // Optional: Force repaint to ensure Safari processes the change
-  //       greatGrandparent.style.display = 'none';
-  //       greatGrandparent.offsetHeight; // Trigger a reflow
-  //       greatGrandparent.style.display = '';
-  //     }
+  //   if (htmlRef.current && isIOS) {
+  //     htmlRef.current.classList.add('ios-html-fallback');
   //   }
-  // }, [isLookingAtComputer]);
+  // }, [isIOS]);
+  
+  // const updateHtmlPosition = () => {
+  //   if (htmlRef.current && !isIOS) {
+  //     const vector = new THREE.Vector3(0, 0, -1);
+  //     vector.applyQuaternion(camera.quaternion);
+  //     htmlRef.current.style.transform = `translate3d(${vector.x * 100}px, ${vector.y * 100}px, ${vector.z * 100}px)`;
+  //   }
+  // };
+
+  // useFrame(updateHtmlPosition);
 
   useEffect(() => {
     let currentElement = htmlRef.current;
@@ -233,7 +228,6 @@ export default function ComputerScreen({ isLookingAtComputer }) {
         <Html
           ref={htmlRef}
           className="html-content"
-          wrapperClass="html-wrapper-custom"
           position={[0.0071, -0.0058, -0.0001]}
           scale={[0.0113, 0.01254, 1.0]}
           transform

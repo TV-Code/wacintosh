@@ -120,39 +120,46 @@ const Window = ({
       e.preventDefault();
       onFocus(id);
       setIsResizing(true);
-
-      const startX = e.clientX;
-      const startY = e.clientY;
+  
+      const startX = e.clientX || e.touches[0].clientX;
+      const startY = e.clientY || e.touches[0].clientY;
       const startWidth = windowSize.width;
       const startHeight = windowSize.height;
-
+  
       const windowRect = windowRef.current.getBoundingClientRect();
       const scaleX = startWidth / windowRect.width;
       const scaleY = startHeight / windowRect.height;
-
+  
       let currentPreviewSize = { ...windowSize };
-
-      const handleMouseMove = (e) => {
-        const deltaX = (e.clientX - startX) * scaleX;
-        const deltaY = (e.clientY - startY) * scaleY;
-
+  
+      const handleMove = (moveEvent) => {
+        const clientX = moveEvent.clientX || moveEvent.touches[0].clientX;
+        const clientY = moveEvent.clientY || moveEvent.touches[0].clientY;
+  
+        const deltaX = (clientX - startX) * scaleX;
+        const deltaY = (clientY - startY) * scaleY;
+  
         const newWidth = Math.max(200, startWidth + deltaX);
         const newHeight = Math.max(200, startHeight + deltaY);
-
+  
         currentPreviewSize = { width: newWidth, height: newHeight };
         setPreviewSize(currentPreviewSize);
       };
-
-      const handleMouseUp = () => {
-        window.removeEventListener("mousemove", handleMouseMove);
-        window.removeEventListener("mouseup", handleMouseUp);
+  
+      const handleEnd = () => {
+        window.removeEventListener("mousemove", handleMove);
+        window.removeEventListener("touchmove", handleMove);
+        window.removeEventListener("mouseup", handleEnd);
+        window.removeEventListener("touchend", handleEnd);
         setIsResizing(false);
         setWindowSize(currentPreviewSize);
         onResize(id, currentPreviewSize);
       };
-
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
+  
+      window.addEventListener("mousemove", handleMove);
+      window.addEventListener("touchmove", handleMove);
+      window.addEventListener("mouseup", handleEnd);
+      window.addEventListener("touchend", handleEnd);
     },
     [id, onFocus, onResize, windowSize]
   );
@@ -200,10 +207,10 @@ const Window = ({
 
   const resizeButtonStyle = {
     position: "absolute",
-    right: "-2px",
-    bottom: "-2px",
-    width: "31px",
-    height: "30px",
+    right: "0",
+    bottom: "0",
+    width: "29px",
+    height: "28px",
     borderTop: "1px solid #000",
     borderLeft: "1px solid black",
     background: "#fff",
@@ -220,8 +227,8 @@ const Window = ({
 
   const smallSquareStyle = {
     position: "absolute",
-    bottom: "2px",
-    right: "2px",
+    bottom: "1px",
+    right: "0",
     width: "8px",
     height: "8px",
     border: "2px solid #000",
@@ -230,6 +237,7 @@ const Window = ({
 
   const largeSquareStyle = {
     position: "absolute",
+    left: '-3px',
     width: "12px",
     height: "12px",
     border: "2px solid #000",
@@ -273,7 +281,7 @@ const Window = ({
             overflow: "hidden",
             paddingRight: "30px",
             whiteSpace: "pre-wrap",
-            height: "calc(100% - 45px)",
+            height: "calc(100% - 41px)",
           }}
         >
           {trimmedContent}
@@ -433,6 +441,7 @@ const Window = ({
           className="resize-handle"
           style={resizeButtonStyle}
           onMouseDown={handleResize}
+          onTouchStart={handleResize}
         >
           <div style={resizeIconStyle}>
             <div style={largeSquareStyle}></div>
