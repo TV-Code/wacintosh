@@ -16,7 +16,6 @@ import TextFileIcon from "../assets/FileText.svg?react";
 import GraphicFileIcon from "../assets/FileGraphic.svg?react";
 import TrashIcon from '../assets/Trash.svg?react';
 import DraggableIcon from "./DraggableIcon";
-import customCollisionDetectionWithWindowPriority from "./CustomCollisionDetectionWithZIndex";
 
 const MENU_BAR_HEIGHT = 32;
 const WINDOW_BAR_HEIGHT = 35;
@@ -536,21 +535,20 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
 
   const checkTaskCompletion = () => {
     const systemFolder = icons.find((icon) => icon.id === "system-folder");
-    const applicationsFolder = icons.find(
-      (icon) => icon.id === "applications-folder"
-    );
+    const applicationsFolder = icons.find((icon) => icon.id === "applications-folder");
     const dataFolder = icons.find((icon) => icon.id === "data-folder");
-
+  
     const isComplete =
-      systemFolder.items.length === 2 &&
-      applicationsFolder.items.length === 2 &&
-      dataFolder.items.length === 3;
-
+      systemFolder?.items?.length === 2 &&
+      applicationsFolder?.items?.length === 2 &&
+      dataFolder?.items?.length === 3;
+  
     if (isComplete) {
       setTaskCompleted(true);
       setReadMeStage("final");
     }
   };
+  
 
   const handleDragStart = (event) => {
     const { active } = event;
@@ -837,13 +835,14 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
     const { active, over } = event;
     if (over && active.id !== over.id) {
       const overId = over.id;
-      const activeId = active.id;
   
-      if (overId.startsWith('window-')) {
-        // We are over a window, do not set overFolderId
-        setOverFolderId(null);
+      if (overId.includes('folder') || overId.includes('trash')) {
+        console.log(`Dragging over folder: ${over.id}`);
+        setOverFolderId(over.id);
+        console.log(overFolderId)
       } else {
-        setOverFolderId(overId);
+        // Not over a folder
+        setOverFolderId(null);
       }
     } else {
       // Reset overFolderId
@@ -1132,7 +1131,6 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
             onDragEnd={handleDragEnd}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
-            collisionDetection={customCollisionDetectionWithWindowPriority}
           >
             <DroppableArea
               id="desktop"
@@ -1359,7 +1357,7 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
                                 type={item.type}
                                 zIndex={
                                   elementZIndexes[item.id] ||
-                                  BASE_WINDOW_ICON_Z_INDEX
+                                  ((windowZIndexes[id] || BASE_INACTIVE_WINDOW_Z_INDEX) + 1)
                                 }
                                 itemCount={
                                   id === "trash" ? trashContents.length : undefined

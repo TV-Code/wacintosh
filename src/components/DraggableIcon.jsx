@@ -23,10 +23,6 @@ const DraggableIcon = ({
 }) => {
   const isDroppable = type === 'folder' || type === 'trash';
 
-  const [lastTap, setLastTap] = useState(0);
-  const [touchStartTime, setTouchStartTime] = useState(0);
-  const [touchStartPosition, setTouchStartPosition] = useState({ x: 0, y: 0 });
-
   const { attributes, listeners, setNodeRef: setDraggableRef, transform, isDragging } = useDraggable({
     id,
     data: { type: 'icon', zIndex: zIndex, parentId },
@@ -51,8 +47,8 @@ const DraggableIcon = ({
   );
 
   useEffect(() => {
-    console.log(`Icon ${id} has parentId:`, parentId);
-  }, [id, parentId]);
+    console.log(isOver);
+  }, [isOver]);
 
   useEffect(() => {
     if (textRef.current) {

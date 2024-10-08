@@ -79,6 +79,8 @@ const Window = ({
   trashContents,
   updateTrashContents,
 }) => {
+  const isMobileOrTablet = window.innerWidth <= 1024;
+
   const [windowSize, setWindowSize] = useState(
     initialSize || { width: 200, height: 200 }
   );
@@ -207,10 +209,10 @@ const Window = ({
 
   const resizeButtonStyle = {
     position: "absolute",
-    right: "0",
-    bottom: "0",
-    width: "29px",
-    height: "28px",
+    right: isMobileOrTablet ? "0" : "-1px",
+    bottom: isMobileOrTablet ? "0" : "-2px",
+    width: isMobileOrTablet ? "29px" : "30px",
+    height: isMobileOrTablet ? "28px" : "30px",
     borderTop: "1px solid #000",
     borderLeft: "1px solid black",
     background: "#fff",
@@ -228,7 +230,7 @@ const Window = ({
   const smallSquareStyle = {
     position: "absolute",
     bottom: "1px",
-    right: "0",
+    right: isMobileOrTablet ? "0" : "2px",
     width: "8px",
     height: "8px",
     border: "2px solid #000",
@@ -237,7 +239,7 @@ const Window = ({
 
   const largeSquareStyle = {
     position: "absolute",
-    left: '-3px',
+    left: isMobileOrTablet ? '-3px' : "0px",
     width: "12px",
     height: "12px",
     border: "2px solid #000",
