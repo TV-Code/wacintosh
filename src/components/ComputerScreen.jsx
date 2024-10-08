@@ -58,13 +58,13 @@ function canUseHtmlComponent(browserDetails) {
   return true;
 }
 
-const HtmlWrapper = ({ isSupported, distanceFactor, children, ...props }) => {
+const HtmlWrapper = ({ isSupported, distanceFactor, isPortrait, children, ...props }) => {
   return isSupported ? (
     <Html {...props} transform occlude="blending">
       {children}
     </Html>
   ) : (
-    <Html {...props} distanceFactor={distanceFactor}>
+    <Html {...props} distanceFactor={distanceFactor} className={`html-wrapper ${isPortrait ? 'rotated' : ''}`}>
       {children}
     </Html>
   );
@@ -80,7 +80,9 @@ export default function ComputerScreen({ isLookingAtComputer }) {
 
   const [htmlKey, setHtmlKey] = useState(1);
   const [renderHtml, setRenderHtml] = useState(false);
-  
+
+  const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
+
 
   const [isSupported, setIsSupported] = useState(false);
   const [browserDetails, setBrowserDetails] = useState({});
@@ -108,6 +110,7 @@ export default function ComputerScreen({ isLookingAtComputer }) {
 
   useEffect(() => {
     const handleResize = () => {
+      setIsPortrait(window.innerHeight > window.innerWidth);
       if (isLookingAtComputer) {
         setHtmlKey((prevKey) => prevKey + 1);
       }
@@ -133,14 +136,7 @@ export default function ComputerScreen({ isLookingAtComputer }) {
     console.log(`Is Supported: ${supported}`);
   }, []);
 
-   const desiredAspectRatio = 800 / 1600;
-   const currentAspectRatio = size.height / size.width;
- 
-   let distanceFactor = 0.23;
-   if (currentAspectRatio < desiredAspectRatio) {
-     const ratio = currentAspectRatio / desiredAspectRatio;
-     distanceFactor = 0.23 * ratio;
-   }
+  const distanceFactor = size.height * 0.00028;
 
   useFrame(({ clock }) => {
     if (screenRef.current && screenRef.current.uniforms) {
@@ -323,6 +319,7 @@ export default function ComputerScreen({ isLookingAtComputer }) {
           center
           isSupported={isSupported}
           distanceFactor={distanceFactor}
+          isPortrait={isPortrait}
         >
           <DndProvider backend={HTML5Backend} >
             <System1

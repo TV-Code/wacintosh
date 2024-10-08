@@ -338,5 +338,15 @@ ul [role=menu-item].divider:after {
   font-family: Chicago_12;
 }
 
+.html-wrapper.rotated {
+  transform: rotate(90deg);
+  transform-origin: center;
+}
+
+.dialog-text {
+  text-align: center;
+  font-family: Chicago_12;
+}
+
 
 

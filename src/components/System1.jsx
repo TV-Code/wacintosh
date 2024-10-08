@@ -46,7 +46,6 @@ const BASE_DESKTOP_ICON_Z_INDEX = 100;
 const BASE_WINDOW_ICON_Z_INDEX = 1000;
 const BASE_INACTIVE_WINDOW_Z_INDEX = 2000;
 const BASE_ACTIVE_WINDOW_Z_INDEX = 3000;
-const DRAGGING_Z_INDEX = 10000;
 
 const System1 = ({
   zoomOut,
@@ -67,7 +66,6 @@ const System1 = ({
   const [scale, setScale] = useState({ x: 1, y: 1 });
 
   const [openWindows, setOpenWindows] = useState({});
-  const [windowZIndex, setWindowZIndex] = useState({});
   const [maxZIndex, setMaxZIndex] = useState(BASE_ACTIVE_WINDOW_Z_INDEX);
   const [windowZIndexes, setWindowZIndexes] = useState({});
 
@@ -105,8 +103,8 @@ const System1 = ({
     {
       id: "applications-folder",
       content: <FolderIcon />,
-      name: "Applications",
-      position: { x: 170, y: 40 },
+      name: "Fabricator Engine",
+      position: { x: 190, y: 40 },
       type: "folder",
       items: [],
     },
@@ -114,7 +112,7 @@ const System1 = ({
       id: "data-folder",
       content: <FolderIcon />,
       name: "Environment Data",
-      position: { x: 320, y: 40 },
+      position: { x: 400, y: 40 },
       type: "folder",
       items: [],
     },
@@ -138,7 +136,7 @@ const System1 = ({
       id: "trash",
       content: <TrashIcon />,
       name: "Trash",
-      position: { x: 500, y: 500 },
+      position: { x: 900, y: 560 },
       type: "trash",
       items: [],
     },
@@ -166,26 +164,34 @@ const System1 = ({
         {
           id: "boot-file",
           content: <TextFileIcon />,
-          name: "Boot.dat",
+          name: "Compile.mdl",
           position: { x: 320, y: 20 },
           type: "file",
           category: "application",
+        },
+        {
+          id: "env-data1",
+          content: <GraphicFileIcon />,
+          name: "Objects.data",
+          position: { x: 470, y: 20 },
+          type: "file",
+          category: "env-data",
         },
       ];
     } else if (triggerType === "trash" && triggerId === "trash") {
       return [
         {
-          id: "env-data1",
-          content: <GraphicFileIcon />,
-          name: "Room.data",
-          position: { x: 20, y: 20 },
+          id: "boot-file2",
+          content: <TextFileIcon />,
+          name: "3D_Blueprint",
+          position: { x: 320, y: 20 },
           type: "file",
-          category: "env-data",
+          category: "application",
         },
         {
           id: "env-data2",
           content: <GraphicFileIcon />,
-          name: "Objects.data",
+          name: "Materials.data",
           position: { x: 170, y: 20 },
           type: "file",
           category: "env-data",
@@ -194,7 +200,7 @@ const System1 = ({
           id: "env-data3",
           content: <GraphicFileIcon />,
           name: "Lighting.data",
-          position: { x: 320, y: 20 },
+          position: { x: 20, y: 20 },
           type: "file",
           category: "env-data",
         },
@@ -270,6 +276,11 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
       bootSequence();
     }
   }, [isLookingAtComputer]);
+
+  useEffect(() => {
+    checkTaskCompletion();
+  }, [icons]);
+  
 
   useEffect(() => {
     if (taskCompleted) {
@@ -532,7 +543,7 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
 
     const isComplete =
       systemFolder.items.length === 2 &&
-      applicationsFolder.items.length === 1 &&
+      applicationsFolder.items.length === 2 &&
       dataFolder.items.length === 3;
 
     if (isComplete) {
@@ -707,11 +718,13 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
             }
           }
 
-          // Remove from source
           if (sourceParent) {
-            sourceParent.items = sourceParent.items.filter(
-              (item) => item.id !== sourceId
+            const itemIndex = sourceParent.items.findIndex(
+              (item) => item.id === sourceId
             );
+            if (itemIndex !== -1) {
+              sourceParent.items.splice(itemIndex, 1);
+            }
           } else {
             const index = draft.findIndex((icon) => icon.id === sourceId);
             if (index !== -1) {
@@ -982,7 +995,7 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
                 id: "recovery-folder",
                 content: <FolderIcon />,
                 name: "Recovery",
-                position: { x: 470, y: 40 },
+                position: { x: 290, y: 157 },
                 type: "folder",
                 items: hiddenFiles,
               },
@@ -1384,7 +1397,10 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
           </>
           {taskCompleted && completedWindowTimer && (
             <div
+              className="sstandard-dialog center scale-down"
               style={{
+                width: '35em',
+                height: '7.5rem',
                 position: "absolute",
                 top: "50%",
                 left: "50%",
@@ -1392,10 +1408,11 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
                 backgroundColor: "white",
                 padding: "20px",
                 border: "2px solid black",
+                zIndex: "100000",
               }}
             >
-              <h2>Task Completed!</h2>
-              <p>
+              <h2 className="dialog-text">Task Completed!</h2>
+              <p className="dialog-text">
                 All files are correctly organized. You can now run the
                 Environment application.
               </p>
