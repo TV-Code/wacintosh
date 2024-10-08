@@ -908,6 +908,8 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
     } else if (targetIcon.type === "file") {
       if (id === "readme") {
         openReadmeFile();
+      } else {
+        setAlertMessage("An application can't be found to open this file.");
       }
     }
   };

@@ -7,14 +7,83 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import System1 from "./System1";
 import { useCameraControl } from "./CameraControlContext";
 
+// Helper function to get the iOS version from the user agent
+function getIOSVersion() {
+  const ua = navigator.userAgent;
+  const match = ua.match(/OS (\d+)_?(\d+)?/);
+  if (match) {
+    const majorVersion = parseInt(match[1], 10);
+    const minorVersion = match[2] ? parseInt(match[2], 10) : 0;
+    return { majorVersion, minorVersion };
+  }
+  return null;
+}
+
+// Function to detect the browser and platform
+function getBrowserDetails() {
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  const isChrome = /Chrome/.test(ua) && !/Edge|Edg/.test(ua);  // Distinguish Chrome from Edge
+  const isSafari = /^((?!chrome|android).)*safari/i.test(ua) && !isChrome;  // Safari but not Chrome
+  const safariVersionMatch = ua.match(/Version\/(\d+(\.\d+)?).*Safari/);
+  const safariVersion = safariVersionMatch ? parseFloat(safariVersionMatch[1]) : null;
+  const iOSVersion = getIOSVersion();
+
+  return {
+    isIOS,
+    isChrome,
+    isSafari,
+    safariVersion,
+    iOSVersion,
+  };
+}
+
+function canUseHtmlComponent(browserDetails) {
+  const { isIOS, iOSVersion, isSafari, safariVersion } = browserDetails;
+
+  // If on iOS, check the iOS version (Safari and Chrome on iOS use the same engine)
+  if (isIOS) {
+    if (iOSVersion && iOSVersion.majorVersion <= 17.7) {
+      return false;  // iOS versions 17.7 and below do not support transforms
+    }
+    return true;  // iOS 17.7 and above
+  }
+
+  // If on desktop Safari, check Safari version
+  if (isSafari && safariVersion <= 17.6) {
+    return false;  // Desktop Safari version 17.6 and below do not support transforms
+  }
+
+  // For desktop Chrome, assume transforms are supported
+  return true;
+}
+
+const HtmlWrapper = ({ isSupported, distanceFactor, children, ...props }) => {
+  return isSupported ? (
+    <Html {...props} transform occlude="blending">
+      {children}
+    </Html>
+  ) : (
+    <Html {...props} distanceFactor={distanceFactor}>
+      {children}
+    </Html>
+  );
+};
+
+
 export default function ComputerScreen({ isLookingAtComputer }) {
   const [textTexture, setTextTexture] = useState();
-  const isIOS = useMemo(() => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream, []);
   const { zoomOut, runEnvBuild } = useCameraControl();
   const screenRef = useRef();
   const meshRef = useRef();
   const htmlRef = useRef();
 
+  const [htmlKey, setHtmlKey] = useState(1);
+  const [renderHtml, setRenderHtml] = useState(false);
+  
+
+  const [isSupported, setIsSupported] = useState(false);
+  const [browserDetails, setBrowserDetails] = useState({});
   const { camera, size } = useThree();
   const [screenDimensions, setScreenDimensions] = useState({
     width: 0,
@@ -23,33 +92,55 @@ export default function ComputerScreen({ isLookingAtComputer }) {
     y: 0,
   });
 
-  // useEffect(() => {
-  //   if (htmlRef.current && isIOS) {
-  //     htmlRef.current.classList.add('ios-html-fallback');
-  //   }
-  // }, [isIOS]);
-  
-  // const updateHtmlPosition = () => {
-  //   if (htmlRef.current && !isIOS) {
-  //     const vector = new THREE.Vector3(0, 0, -1);
-  //     vector.applyQuaternion(camera.quaternion);
-  //     htmlRef.current.style.transform = `translate3d(${vector.x * 100}px, ${vector.y * 100}px, ${vector.z * 100}px)`;
-  //   }
-  // };
+  // Trigger a re-render after mounting
+  useEffect(() => {
+    if (isLookingAtComputer) {
+      const timer = setTimeout(() => {
+        setHtmlKey((prevKey) => prevKey + 1);
+        setRenderHtml(true);
+      }, 750); // Adjust delay as needed
 
-  // useFrame(updateHtmlPosition);
+      return () => clearTimeout(timer);
+    } else {
+      setRenderHtml(false);
+    }
+  }, [isLookingAtComputer]);
 
   useEffect(() => {
-    let currentElement = htmlRef.current;
-    while (currentElement) {
-      currentElement.addEventListener('click', (e) => {
-        console.log('Element clicked:', currentElement);
-      });
-      currentElement = currentElement.parentElement;
-    }
+    const handleResize = () => {
+      if (isLookingAtComputer) {
+        setHtmlKey((prevKey) => prevKey + 1);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
+    };
+  }, [isLookingAtComputer]);
+
+  useEffect(() => {
+    const details = getBrowserDetails();
+    setBrowserDetails(details);
+    
+    const supported = canUseHtmlComponent(details);
+    setIsSupported(supported);
+
+    console.log(`Browser Details: `, details);
+    console.log(`Is Supported: ${supported}`);
   }, []);
-  
-  
+
+   const desiredAspectRatio = 800 / 1600;
+   const currentAspectRatio = size.height / size.width;
+ 
+   let distanceFactor = 0.23;
+   if (currentAspectRatio < desiredAspectRatio) {
+     const ratio = currentAspectRatio / desiredAspectRatio;
+     distanceFactor = 0.23 * ratio;
+   }
 
   useFrame(({ clock }) => {
     if (screenRef.current && screenRef.current.uniforms) {
@@ -122,6 +213,7 @@ export default function ComputerScreen({ isLookingAtComputer }) {
       time: { value: 1.0 },
       resolution: { value: new THREE.Vector2() },
       htmlTexture: { value: textTexture },
+      isSupported: { value: isSupported }, 
     },
     vertexShader: `
             varying vec2 vUv;
@@ -134,6 +226,7 @@ export default function ComputerScreen({ isLookingAtComputer }) {
         varying vec2 vUv;
         uniform float time;
         uniform sampler2D htmlTexture;
+        uniform bool isSupported;
 
         void main() {
         vec2 uv = vUv;
@@ -141,10 +234,10 @@ export default function ComputerScreen({ isLookingAtComputer }) {
         float alpha = 1.0;
 
         // // Define screen area
-        float screenLeft = 0.0837;
-        float screenRight = 0.9592;
-        float screenTop = 0.04875;
-        float screenBottom = 0.9053;
+        float screenLeft = isSupported ? 0.0837 : 0.0;
+        float screenRight = isSupported ? 0.9592 : 0.0;
+        float screenTop = isSupported ? 0.04875 : 0.0;
+        float screenBottom = isSupported ? 0.9053 : 0.0;
 
         // // CRT Curvature
         // uv -= 0.5;
@@ -215,23 +308,21 @@ export default function ComputerScreen({ isLookingAtComputer }) {
     <>
       <mesh
         ref={meshRef}
-        position={[-0.0068, 0.345, 0.13]}
+        position={[-0.0068, 0.345, isSupported ? 0.125 : 0.135]}
         rotation={[-0.1, 0, 0]}
         material={material}
       >
         <planeGeometry args={[0.33, 0.25]} />
-        <shaderMaterial
-          ref={screenRef}
-          attach="material"
-          args={[screenShader]}
-        />
-        <Html
+        {(isSupported || (renderHtml && isLookingAtComputer)) && (
+          <HtmlWrapper
+          key={htmlKey}
           ref={htmlRef}
           className="html-content"
-          position={[0.0071, -0.0058, -0.0001]}
+          position={isSupported ? [0.0071, -0.0058, -0.0001] : [0.0066, -0.006, 0.0]}
           scale={[0.0113, 0.01254, 1.0]}
-          transform
-          occlude="blending"
+          center
+          isSupported={isSupported}
+          distanceFactor={distanceFactor}
         >
           <DndProvider backend={HTML5Backend} >
             <System1
@@ -241,7 +332,34 @@ export default function ComputerScreen({ isLookingAtComputer }) {
               screenDimensions={screenDimensions}
             />
           </DndProvider>
-        </Html>
+        </HtmlWrapper>
+        )}
+          
+        {/* ) : <Html
+        ref={htmlRef}
+        className="html-content"
+        position={[0.0071, -0.0058, -0.0001]}
+        scale={[0.0113, 0.01254, 1.0]}
+        occlude="blending"
+      >
+        <div style={{ fontSize: '40px', zIndex: "100000", position: "fixed", marginLeft: "100px", marginTop: "50px"}}>
+        <h4>Browser Details:</h4>
+          <p>iOS: {browserDetails.isIOS ? "Yes" : "No"}</p>
+          <p>Safari: {browserDetails.isSafari ? "Yes" : "No"}</p>
+          <p>Chrome: {browserDetails.isChrome ? "Yes" : "No"}</p>
+          <p>Safari Version: {browserDetails.safariVersion || "N/A"}</p>
+          <p>Is Supported: {isSupported ? "Yes" : "No"}</p>
+        </div>
+        <DndProvider backend={HTML5Backend} >
+          <System1
+            zoomOut={zoomOut}
+            runEnvBuild={runEnvBuild}
+            isLookingAtComputer={isLookingAtComputer}
+            screenDimensions={screenDimensions}
+          />
+        </DndProvider>
+      </Html>
+      } */}
       </mesh>
     </>
   );
