@@ -501,6 +501,17 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
     }
   };
 
+  const collectAllIds = (iconsArray) => {
+    let ids = [];
+    for (const icon of iconsArray) {
+      ids.push(icon.id);
+      if (icon.items && icon.items.length > 0) {
+        ids = ids.concat(collectAllIds(icon.items));
+      }
+    }
+    return ids;
+  };
+
   const updateTrashContents = useCallback((newContentsOrUpdater) => {
     setTrashContents((prevContents) => {
       const newContents = typeof newContentsOrUpdater === 'function'
@@ -1009,6 +1020,8 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
           const trashIcon = prevIcons.find(icon => icon.id === "trash");
           const recoveryFolderInTrash = trashIcon && trashIcon.items.some(item => item.id === "recovery-folder");
           
+          const trashedItemIds = collectAllIds(trashIcon.items || []);
+
           let newHiddenFiles = [];
           let shouldShowAlert = false;
   
@@ -1020,6 +1033,7 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
                 (icon.items && icon.items.some(item => item.id === newFile.id))
               )
             );
+            
   
             if (newFilesExist) {
               shouldShowAlert = true;
@@ -1036,6 +1050,16 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
             ...trashIcon,
             items: newHiddenFiles,
           };
+
+          setOpenWindows(prevOpenWindows => {
+            const updatedOpenWindows = { ...prevOpenWindows };
+            trashedItemIds.forEach(id => {
+              if (updatedOpenWindows[id]) {
+                delete updatedOpenWindows[id];
+              }
+            });
+            return updatedOpenWindows;
+          });
   
           // Update related states only if we're actually emptying the trash
           updateTrashContents(newHiddenFiles);
