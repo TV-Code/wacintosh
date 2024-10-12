@@ -183,6 +183,7 @@ const Window = ({
     transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
+    overflow: "hidden",
   };
 
   const staticStyle = {
@@ -285,7 +286,7 @@ const Window = ({
             overflow: "hidden",
             paddingRight: "30px",
             whiteSpace: "pre-wrap",
-            height: "calc(100% - 41px)",
+            height: "auto",
           }}
         >
           {trimmedContent}
