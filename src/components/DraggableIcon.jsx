@@ -23,7 +23,13 @@ const DraggableIcon = ({
 }) => {
   const isDroppable = type === 'folder' || type === 'trash';
 
-  const { attributes, listeners, setNodeRef: setDraggableRef, transform, isDragging } = useDraggable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setDraggableRef,
+    transform,
+    isDragging: isIconDragging,
+  } = useDraggable({
     id,
     data: { type: 'icon', zIndex: zIndex, parentId },
   });
@@ -31,6 +37,7 @@ const DraggableIcon = ({
   const { setNodeRef: setDroppableRef, isOver: isOverSelf } = useDroppable({
     id,
     disabled: !isDroppable,
+    data: { type: "folder", id, zIndex: zIndex }
   });
 
   const textRef = useRef(null);
@@ -45,10 +52,6 @@ const DraggableIcon = ({
     },
     [setDraggableRef, setDroppableRef, isDroppable]
   );
-
-  useEffect(() => {
-    console.log(isOver);
-  }, [isOver]);
 
   useEffect(() => {
     if (textRef.current) {
@@ -77,21 +80,22 @@ const DraggableIcon = ({
     left: `${position.x}px`,
     top: `${position.y}px`,
     cursor: 'pointer',
-    filter: selected || (isOver && !isDragging) ? 'invert(100%)' : 'none',
+    filter: selected || (isOver && !isIconDragging) ? 'invert(100%)' : 'none',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     pointerEvents: 'auto',
-    zIndex: isDragging ? 9999 : zIndex,
-    opacity: previewOnly ? 0 : isDragging ? 0 : 1,
+    zIndex: zIndex,
+    opacity: previewOnly ? 0 : isIconDragging ? 0 : 1,
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
   };
 
   const staticStyle = {
     ...style,
-    opacity: isDragging ? 1 : 0,
+    opacity: isIconDragging ? 1 : 0,
     pointerEvents: 'none',
+    zIndex: 1,
     transform: undefined,
   };
 
@@ -116,8 +120,8 @@ const DraggableIcon = ({
     left: `${position.x + iconMargin - strokeWidth / 2}px`,
     top: `${position.y + iconMargin + 1 - strokeWidth / 2}px`,
     pointerEvents: 'none',
-    display: hidePreview || !isDragging ? 'none' : 'block',
-    zIndex: 10000,
+    display: hidePreview || !isIconDragging ? 'none' : 'block',
+    zIndex: 110000,
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
   };
 
@@ -134,41 +138,57 @@ const DraggableIcon = ({
     Z
   `;
 
+  const iconContent = (
+    <>
+      {type === 'folder' && isOpen ? <OpenFolderIcon /> : children}
+      <span ref={textRef} style={textStyle}>
+        {name}
+      </span>
+    </>
+  );
+
   return (
     <>
+      {/* Regular Icon */}
       <div
         ref={combinedRef}
-        style={style}
+        style={{
+          ...style,
+          opacity: previewOnly ? 0 : isIconDragging ? 0 : 1,
+        }}
         {...listeners}
         {...attributes}
         onDoubleClick={onDoubleClick}
         onClick={onClick}
         className={`${className} ${selected ? 'selected' : ''}`}
       >
-        {type === 'folder' && isOpen ? <OpenFolderIcon /> : children}
-        <span ref={textRef} style={textStyle}>
-          {name}
-        </span>
+        {iconContent}
       </div>
-      <div style={staticStyle} className={`${className} ${selected ? 'selected' : ''}`}>
-      {type === 'folder' && isOpen ? <OpenFolderIcon /> : children}
-        <span style={textStyle}>{name}</span>
-      </div>
-      {!hidePreview && (
-        <svg
-          style={svgStyle}
-          width={textWidth}
-          height={iconSize + textDimensions.height}
-        >
-          <path
-            d={pathData}
-            fill="none"
-            stroke="black"
-            strokeWidth="2.5"
-            strokeLinecap='square'
-          />
-        </svg>
+      
+      {/* Static Icon: Only when dragging and not in preview mode */}
+      {isIconDragging && !previewOnly && (
+        <div style={staticStyle} className={`${className} ${selected ? 'selected' : ''}`}>
+          {iconContent}
+        </div>
       )}
+      
+      {/* SVG Preview: Always render, but only show when dragging */}
+      <svg
+        style={{
+          ...svgStyle,
+          opacity: isIconDragging ? 1 : 0,
+        }}
+        width={textWidth}
+        height={iconSize + textDimensions.height}
+      >
+        <path
+          d={pathData}
+          fill="none"
+          stroke="black"
+          strokeWidth="2.5"
+          strokeLinecap='square'
+        />
+      </svg>
     </>
   );
 };

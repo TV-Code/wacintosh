@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
+  closestCenter,
   DndContext,
-  useDroppable,
   PointerSensor,
+  useDroppable,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
 import { produce } from "immer";
+import customCollisionDetection from "./CustomCollisionDetection";
 import Window from "./Window";
 import AlertIcon from "../assets/AlertIcon.svg?react";
 import WacPicassoLogo from "../assets/WacPicassoLogo.png";
@@ -31,7 +33,10 @@ const DroppableArea = ({ id, children, style, isOver, zIndex }) => {
 
   const droppableStyle = {
     ...style,
+    position: "absolute",
+    zIndex,
     filter: isOver ? "invert(100%)" : "none",
+    pointerEvents: "auto",
   };
 
   return (
@@ -42,7 +47,7 @@ const DroppableArea = ({ id, children, style, isOver, zIndex }) => {
 };
 
 const BASE_DESKTOP_ICON_Z_INDEX = 100;
-const BASE_WINDOW_ICON_Z_INDEX = 1000;
+const BASE_WINDOW_ICON_Z_INDEX = 2500;
 const BASE_INACTIVE_WINDOW_Z_INDEX = 2000;
 const BASE_ACTIVE_WINDOW_Z_INDEX = 3000;
 
@@ -395,48 +400,68 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
       setSelectedIcon({ id, parentId: null });
     } else {
       // Clicked on icon within a window
-      setSelectedIcon({ id, parentId });
+      setSelectedIcon({ id, parentId: null });
     }
     handleIconFocus(id);
   };
 
   const updateElementZIndex = useCallback(
-    (id, isDragging = false, isWindow = false, isActive = false) => {
+    (id, isDragging = false, isWindow = false, isActive = false, parentId = null) => {
       setElementZIndexes((prev) => {
         let newZIndex;
         const isWindowId = id.startsWith("window-");
-
+  
         if (isDragging) {
-          newZIndex = BASE_DESKTOP_ICON_Z_INDEX;
         } else if (isWindow || isWindowId) {
           if (isActive) {
-            newZIndex = Math.min(
-              maxZIndex + 1,
-              BASE_ACTIVE_WINDOW_Z_INDEX + 1000
-            );
+            // Active window: Assign next highest z-index
+            newZIndex = maxZIndex + 1;
             setMaxZIndex(newZIndex);
           } else {
+            // Inactive window: Assign base inactive z-index
             newZIndex = BASE_INACTIVE_WINDOW_Z_INDEX;
           }
         } else {
           // It's an icon
-          newZIndex = isWindowId
-            ? BASE_WINDOW_ICON_Z_INDEX
-            : BASE_DESKTOP_ICON_Z_INDEX;
+          if (parentId) {
+            // Icon inside a window
+            const parentZIndex = windowZIndexes[parentId] || BASE_INACTIVE_WINDOW_Z_INDEX;
+            newZIndex = parentZIndex + 5; // Ensure icon is above its parent window
+          } else {
+            // Icon on the desktop
+            newZIndex = BASE_DESKTOP_ICON_Z_INDEX;
+          }
         }
+  
         console.log(`Z-index updated for ${id}: ${newZIndex}`);
         return { ...prev, [id]: newZIndex };
       });
     },
-    [maxZIndex]
+    [maxZIndex, windowZIndexes]
   );
+  
 
   const handleWindowFocus = useCallback((id) => {
-    setWindowZIndexes((prev) => ({
-      ...prev,
-      [id]: Math.max(...Object.values(prev), BASE_ACTIVE_WINDOW_Z_INDEX) + 1,
-    }));
-  }, []);
+    setWindowZIndexes((prev) => {
+      const newZIndex = maxZIndex + 2; // Window gets maxZIndex +1, icons get maxZIndex +2
+      setMaxZIndex(newZIndex + 1); // Update for future assignments
+  
+      // Update the window's zIndex
+      return {
+        ...prev,
+        [id]: newZIndex,
+      };
+    });
+  
+    // Update the z-index for all icons within this window
+    const windowIcon = icons.find(icon => icon.id === id);
+    if (windowIcon && windowIcon.items) {
+      windowIcon.items.forEach(item => {
+        updateElementZIndex(item.id, false, false, true, id); // Icons inside the window
+      });
+    }
+  }, [icons, maxZIndex, updateElementZIndex]);
+  
 
   const handleIconFocus = useCallback(
     (id) => {
@@ -564,9 +589,14 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
   const handleDragStart = (event) => {
     const { active } = event;
     setActiveId(active.id);
-    updateElementZIndex(active.id, true);
 
     const parentId = event.active.data.current?.parentId;
+
+    handleClick(active.id, parentId)
+
+    // Update the Z-index
+    updateElementZIndex(active.id, false, false, false, parentId);
+
     let draggedIcon;
 
     if (parentId) {
@@ -616,7 +646,8 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
       return;
     }
 
-    updateElementZIndex(sourceId, false);
+    const parentIdForZIndex = isTargetWindow ? targetId.replace("window-", "") : null;
+    updateElementZIndex(sourceId, false, false, false, parentIdForZIndex);
 
     if (active.data.current?.type === "window") {
       const windowId = active.data.current.id;
@@ -697,11 +728,24 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
           } else {
             // Moving between containers (desktop <-> window)
             if (isTargetWindow) {
-              // Moving to a window
+             // Moving to a window
+            const windowElement = document.querySelector(`[data-window-id="${normalizedTargetId}"]`);
+            if (windowElement) {
+              const windowRect = windowElement.getBoundingClientRect();
+              const scaleX = windowElement.offsetWidth / windowRect.width;
+              const scaleY = windowElement.offsetHeight / windowRect.height;
+
+              newPosition = {
+                x: (activeRect.left - windowRect.left) * scaleX,
+                y: (activeRect.top - windowRect.top - WINDOW_BAR_HEIGHT) * scaleY,
+              };
+            } else {
+              // Fallback if window element is not found
               newPosition = {
                 x: activeRect.left - overRect.left,
                 y: activeRect.top - overRect.top - WINDOW_BAR_HEIGHT,
               };
+            }
             } else if (targetParent && (targetParent.type === "folder" || targetParent.type === "trash")) {
               // Dropping onto a folder icon (arrange in slots)
               const ICON_SPACING = 130;
@@ -720,12 +764,25 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
               };
             } else {
               // Moving to desktop
+            const desktopElement = document.querySelector('.desktop');
+            if (desktopElement) {
+              const desktopRect = desktopElement.getBoundingClientRect();
+              const scaleX = desktopElement.offsetWidth / desktopRect.width;
+              const scaleY = desktopElement.offsetHeight / desktopRect.height;
+
               newPosition = {
-                x: activeRect.left - overRect.left - 35,
+                x: (activeRect.left - desktopRect.left) * scaleX,
+                y: (activeRect.top - desktopRect.top - MENU_BAR_HEIGHT) * scaleY,
+              };
+            } else {
+              // Fallback if desktop element is not found
+              newPosition = {
+                x: activeRect.left - overRect.left,
                 y: activeRect.top - overRect.top - MENU_BAR_HEIGHT,
               };
             }
           }
+        }
 
           if (sourceParent) {
             const itemIndex = sourceParent.items.findIndex(
@@ -846,6 +903,8 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
     const { active, over } = event;
     if (over && active.id !== over.id) {
       const overId = over.id;
+
+      if (active.id.includes('window')) return;
   
       if (overId.includes('folder') || overId.includes('trash')) {
         console.log(`Dragging over folder: ${over.id}`);
@@ -1152,12 +1211,15 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
           <>
           <DndContext
             sensors={sensors}
+            collisionDetection={customCollisionDetection}
             onDragEnd={handleDragEnd}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
           >
             <DroppableArea
               id="desktop"
+              zIndex={1}
+              type="desktop"
               style={{ width: "100%", height: "100%" }}
             >
               <div
@@ -1413,7 +1475,7 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
               width: "100%",
               height: "100%",
               pointerEvents: "none",
-              zIndex: 10000,
+              zIndex: 100,
             }}
           ></div>
           </>

@@ -4,7 +4,7 @@ import downArrowIcon from '../assets/scrollbar-down.svg';
 import leftArrowIcon from '../assets/scrollbar-left.svg';
 import rightArrowIcon from '../assets/scrollbar-right.svg';
 
-const CustomScrollbar = ({ orientation = 'horizontal', isTrash }) => {
+const CustomScrollbar = ({ orientation = 'horizontal', isTrash, isDragging }) => {
   const isVertical = orientation === 'vertical';
 
   const containerStyle = {
@@ -29,7 +29,7 @@ const CustomScrollbar = ({ orientation = 'horizontal', isTrash }) => {
     display: 'flex',
     flexDirection: isVertical ? 'column' : 'row',
     justifyContent: 'space-between',
-    zIndex: '1500',
+    zIndex: isDragging ? '11000' : '3500',
     overflow: 'hidden',
   };
 

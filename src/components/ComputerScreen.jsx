@@ -331,32 +331,6 @@ export default function ComputerScreen({ isLookingAtComputer }) {
           </DndProvider>
         </HtmlWrapper>
         )}
-          
-        {/* ) : <Html
-        ref={htmlRef}
-        className="html-content"
-        position={[0.0071, -0.0058, -0.0001]}
-        scale={[0.0113, 0.01254, 1.0]}
-        occlude="blending"
-      >
-        <div style={{ fontSize: '40px', zIndex: "100000", position: "fixed", marginLeft: "100px", marginTop: "50px"}}>
-        <h4>Browser Details:</h4>
-          <p>iOS: {browserDetails.isIOS ? "Yes" : "No"}</p>
-          <p>Safari: {browserDetails.isSafari ? "Yes" : "No"}</p>
-          <p>Chrome: {browserDetails.isChrome ? "Yes" : "No"}</p>
-          <p>Safari Version: {browserDetails.safariVersion || "N/A"}</p>
-          <p>Is Supported: {isSupported ? "Yes" : "No"}</p>
-        </div>
-        <DndProvider backend={HTML5Backend} >
-          <System1
-            zoomOut={zoomOut}
-            runEnvBuild={runEnvBuild}
-            isLookingAtComputer={isLookingAtComputer}
-            screenDimensions={screenDimensions}
-          />
-        </DndProvider>
-      </Html>
-      } */}
       </mesh>
     </>
   );

@@ -79,7 +79,8 @@ const Window = ({
   trashContents,
   updateTrashContents,
 }) => {
-  const isMobileOrTablet = window.innerWidth <= 1024;
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
 
   const [windowSize, setWindowSize] = useState(
     initialSize || { width: 200, height: 200 }
@@ -109,7 +110,7 @@ const Window = ({
 
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: `window-${id}`,
-    data: { type: "window", id },
+    data: { type: "window", id, zIndex },
     disabled: isReadme,
   });
 
@@ -209,16 +210,17 @@ const Window = ({
 
   const resizeButtonStyle = {
     position: "absolute",
-    right: isMobileOrTablet ? "0" : "-1px",
-    bottom: isMobileOrTablet ? "0" : "-2px",
-    width: isMobileOrTablet ? "29px" : "30px",
-    height: isMobileOrTablet ? "28px" : "30px",
+    right: isIOS ? "0" : "-1px",
+    bottom: isIOS ? "0" : "-2px",
+    width: isIOS ? "29px" : "30px",
+    height: isIOS ? "28px" : "30px",
     borderTop: "1px solid #000",
     borderLeft: "1px solid black",
     background: "#fff",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    zIndex: '3500',
   };
 
   const resizeIconStyle = {
@@ -230,7 +232,7 @@ const Window = ({
   const smallSquareStyle = {
     position: "absolute",
     bottom: "1px",
-    right: isMobileOrTablet ? "0" : "2px",
+    right: isIOS ? "0" : "2px",
     width: "8px",
     height: "8px",
     border: "2px solid #000",
@@ -239,7 +241,7 @@ const Window = ({
 
   const largeSquareStyle = {
     position: "absolute",
-    left: isMobileOrTablet ? '-3px' : "0px",
+    left: isIOS ? '-3px' : "0px",
     width: "12px",
     height: "12px",
     border: "2px solid #000",
@@ -303,7 +305,7 @@ const Window = ({
                 },
                 windowSize: windowSize,
                 windowPosition: position,
-                hidePreview: true,
+                previewOnly: false,
                 onIconInteraction: onIconInteraction,
                 selectedIcon: selectedIcon,
                 elementZIndexes: elementZIndexes,
@@ -319,7 +321,11 @@ const Window = ({
               })
             )}
           </div>
-          <div style={unconstrainedLayerStyle}>
+          <div style={{
+            ...unconstrainedLayerStyle,
+            background: 'transparent',
+            overflow: 'visible',
+          }}>
             {React.Children.map(children, (child) =>
               React.cloneElement(child, {
                 style: {
@@ -335,47 +341,9 @@ const Window = ({
                 selectedIcon: selectedIcon,
                 elementZIndexes: elementZIndexes,
                 BASE_WINDOW_ICON_Z_INDEX: BASE_WINDOW_ICON_Z_INDEX,
-                onDragEnd: (event) => {
-                  if (id === 'trash') {
-                    const { active, over } = event;
-                    if (over && over.id !== 'window-trash') {
-                      updateTrashContents((prev) => prev.filter((item) => item.id !== active.id));
-                    }
-                  }
-                },
               })
             )}
           </div>
-          {!isDragging && (
-            <div style={unconstrainedLayerStyle}>
-              {React.Children.map(children, (child) =>
-                React.cloneElement(child, {
-                  style: {
-                    ...child.props.style,
-                    position: "absolute",
-                    left: `${child.props.position.x}px`,
-                    top: `${child.props.position.y}px`,
-                  },
-                  windowSize: windowSize,
-                  windowPosition: position,
-                  previewOnly: true,
-                  onIconInteraction: onIconInteraction,
-                  selectedIcon: selectedIcon,
-                  elementZIndexes: elementZIndexes,
-                  BASE_WINDOW_ICON_Z_INDEX: BASE_WINDOW_ICON_Z_INDEX,
-                  isDragging: isDragging,
-                  onDragEnd: (event) => {
-                    if (id === 'trash') {
-                      const { active, over } = event;
-                      if (over && over.id !== 'window-trash') {
-                        updateTrashContents((prev) => prev.filter((item) => item.id !== active.id));
-                      }
-                    }
-                  },
-                })
-              )}
-            </div>
-          )}
         </>
       );
     }
@@ -389,6 +357,7 @@ const Window = ({
           setDroppableRef(node);
           windowRef.current = node;
         }}
+        data-window-id={id}
         style={windowStyle}
         className="window"
         onMouseDown={() => onFocus(id)}
