@@ -183,7 +183,6 @@ const Window = ({
     transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
-    overflow: "hidden",
   };
 
   const staticStyle = {
@@ -279,17 +278,19 @@ const Window = ({
     if (id === "readme") {
       const trimmedContent = content[readMeStage].trimStart();
       return (
-        <div
-          style={{
-            fontSize: "28px",
-            padding: "10px",
-            overflow: "hidden",
-            paddingRight: "30px",
-            whiteSpace: "pre-wrap",
-            height: "auto",
-          }}
-        >
-          {trimmedContent}
+        <div style={{ height: 'calc(100% - 35px)', overflow: 'hidden'}}>
+          <div
+            style={{
+              fontSize: "28px",
+              padding: "10px",
+              overflow: "hidden",
+              paddingRight: "30px",
+              whiteSpace: "pre-wrap",
+              height: "auto",
+            }}
+          >
+            {trimmedContent}
+          </div>
         </div>
       );
     } else {
