@@ -10,6 +10,9 @@ import * as THREE from "three";
 import { useThree, useFrame } from '@react-three/fiber';
 import RetroAnalogEffectComponent from './RetroComicNoirEffectComponent';
 
+const ua = navigator.userAgent;
+const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+
 export function Scene(props) {
   const { nodes, animations } = useGLTF('models/scenewcreature.glb');
   const groupRef = useRef();
@@ -61,7 +64,6 @@ export function Scene(props) {
   useEffect(() => {
     if (controls.current) {
       if (!isEnvBuilt) {
-        console.log('campos');
         api.start({
          cameraPos: [0.58, 1.65, -0.3],
          onChange: ({ value }) => {
@@ -131,9 +133,10 @@ export function Scene(props) {
       setIsLookingAtComputer(newIsLookingAtComputer);
       
       const targetPos = [0.58, 1.62, -0.843];
+      const IOStargetPos = [0.58, 1.61, -0.843]
       
       api.start({
-        cameraPos: targetPos,
+        cameraPos: isIOS ? IOStargetPos : targetPos,
         onChange: () => setIsCameraMoving(true),
         onRest: () => setIsCameraMoving(false)
       });
@@ -169,48 +172,49 @@ const handleMagazineClick = () => {
   }
 };
 
-const handlePageTurn = (pageNumber) => {
-  const animationName = `Plane.010Action${pageNumber ? `.${pageNumber.toString().padStart(3, '0')}` : ''}`;
+// const handlePageTurn = (pageNumber) => {
+//   const animationName = `Plane.010Action${pageNumber ? `.${pageNumber.toString().padStart(3, '0')}` : ''}`;
   
-  const action = actions[animationName];
-  if (!action || isAnimatingRef.current) return; // Guard clause if action is not available or animation is in progress
+//   const action = actions[animationName];
+//   if (!action || isAnimatingRef.current) return; // Guard clause if action is not available or animation is in progress
 
-  if (isLookingAtMagazine) {
-    isAnimatingRef.current = true; // Mark as animating
-    action.clampWhenFinished = true;
-    action.loop = THREE.LoopOnce; // Play the animation only once
+//   if (isLookingAtMagazine) {
+//     isAnimatingRef.current = true; // Mark as animating
+//     action.clampWhenFinished = true;
+//     action.loop = THREE.LoopOnce; // Play the animation only once
 
-    const pageTurnedKey = `pageTurned${pageNumber}`;
-    // If the page is currently not turned, start the turn animation
-    if (!pageTurnedRef.current[pageTurnedKey]) {
-      action.reset().play(); // Restart the animation from the beginning
-      action.paused = false; // Ensure the animation is playing
-      // Pause the animation halfway for the turn effect
-      setTimeout(() => {
-        action.paused = true;
-        pageTurnedRef.current[pageTurnedKey] = true; // Mark the page as turned
-        isAnimatingRef.current = false;
-      }, 625); // Halfway through the total duration
-    } else {
-      // For unturning, let the animation play from its current state to the end
-      if (action.paused) {
-        action.paused = false; // Resume playing if it was paused
-        // Wait for the rest of the animation to complete before marking it as unturned
-        setTimeout(() => {
-          pageTurnedRef.current[pageTurnedKey] = false; // Mark the page as unturned
-          isAnimatingRef.current = false;
-        }, 625); // Time left to complete the animation from its halfway point
-      }
-    }
-  }
-};
+//     const pageTurnedKey = `pageTurned${pageNumber}`;
+//     // If the page is currently not turned, start the turn animation
+//     if (!pageTurnedRef.current[pageTurnedKey]) {
+//       action.reset().play(); // Restart the animation from the beginning
+//       action.paused = false; // Ensure the animation is playing
+//       // Pause the animation halfway for the turn effect
+//       setTimeout(() => {
+//         action.paused = true;
+//         pageTurnedRef.current[pageTurnedKey] = true; // Mark the page as turned
+//         isAnimatingRef.current = false;
+//       }, 625); // Halfway through the total duration
+//     } else {
+//       // For unturning, let the animation play from its current state to the end
+//       if (action.paused) {
+//         action.paused = false; // Resume playing if it was paused
+//         // Wait for the rest of the animation to complete before marking it as unturned
+//         setTimeout(() => {
+//           pageTurnedRef.current[pageTurnedKey] = false; // Mark the page as unturned
+//           isAnimatingRef.current = false;
+//         }, 625); // Time left to complete the animation from its halfway point
+//       }
+//     }
+//   }
+// };
 
 useFrame(() => {
   if (isCameraMoving) {
     const targetPos = cameraPos.get();
     camera.position.lerp(new THREE.Vector3(...targetPos), 0.1);
+    const computerPositionHeight = isIOS ? 1.51 : 1.53;
     if (isLookingAtComputer) {
-      const computerPosition = new THREE.Vector3(0.58, 1.53, -1.877);
+      const computerPosition = new THREE.Vector3(0.58, computerPositionHeight, -1.877);
       controls.current.target.copy(computerPosition);
       controls.current.object.lookAt(computerPosition);
     } else if (isLookingAtCW) {

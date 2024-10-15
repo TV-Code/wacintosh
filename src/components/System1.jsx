@@ -592,7 +592,8 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
 
     const parentId = event.active.data.current?.parentId;
 
-    handleClick(active.id, parentId)
+    handleClick(active.id, parentId);
+    handleWindowFocus(parentId);
 
     // Update the Z-index
     updateElementZIndex(active.id, false, false, false, parentId);
