@@ -50,11 +50,11 @@ export function Scene(props) {
   const [showGroup3, setShowGroup3] = useState(false);
   const [showGroup4, setShowGroup4] = useState(false);
 
-  const [showCWText, setShowCWText] = useState(false); // State to control text visibility
+  const [showCWText, setShowCWText] = useState(false); 
   const cWTextAnimation = useSpring({ opacity: showCWText ? 1 : 0, config: { duration: 1000 } });
 
-  const pageTurnedRef = useRef({});
-  const isAnimatingRef = useRef(false);
+  // const pageTurnedRef = useRef({});
+  // const isAnimatingRef = useRef(false);
 
   const [{ cameraPos }, api] = useSpring(() => ({
     cameraPos: camera.position.toArray(),
@@ -218,7 +218,7 @@ useFrame(() => {
       controls.current.target.copy(computerPosition);
       controls.current.object.lookAt(computerPosition);
     } else if (isLookingAtCW) {
-      const cWPosition = new THREE.Vector3(-1.1, 2.7, -2.7); // Adjust these values based on the exact position
+      const cWPosition = new THREE.Vector3(-1.1, 2.7, -2.7);
       controls.current.target.copy(cWPosition);
       controls.current.object.lookAt(cWPosition);
     } else if (isLookingAtMagazine) {
@@ -257,8 +257,8 @@ useEffect(() => {
       <>
       <EffectComposer enabled={hover} autoClear={false}>
           <Outline
-            edgeStrength={isEnvBuilt ? 3 : 25} // the edge strength
-            visibleEdgeColor={isEnvBuilt ? 0xffffff : 0x555555} // the color of visible edges
+            edgeStrength={isEnvBuilt ? 3 : 25}
+            visibleEdgeColor={isEnvBuilt ? 0xffffff : 0x555555}
           />
         </EffectComposer>
         </>
@@ -386,8 +386,8 @@ useEffect(() => {
         { !isLookingAtCW && !hover && !hoverMagazine && ( 
         <EffectComposer enabled={hoverCW} autoClear={false}>
             <Outline
-              edgeStrength={3} // the edge strength
-              visibleEdgeColor={0xffffff} // the color of visible edges
+              edgeStrength={3}
+              visibleEdgeColor={0xffffff}
             />
         </EffectComposer>
       )}
@@ -414,13 +414,13 @@ useEffect(() => {
         </Selection>
         {showCWText && (
           <>
-          <animated.group position={[-0.7999, 3.556, -1.71]} // Adjust based on where you want the text
+          <animated.group position={[-0.7999, 3.556, -1.71]}
                           opacity={cWTextAnimation.opacity}>
             <Text color="#000000" font="/RobotoMonoBold.ttf" fontSize={0.06} maxWidth={1.75} lineHeight={0.99} letterSpacing={0.01} textAlign={'left'}anchorX="center" anchorY="middle" castShadow>
             At Creature World, I helped with the creation of "The Travelling Creature" which was the product of connecting art with ever evolving technology with the aim of bringing people together. Later, I explored new creative paths with the design team, blending digital art and innovative concepts.
             </Text>
           </animated.group>
-          <animated.group position={[-0.8, 3.56, -1.7]} // Adjust based on where you want the text
+          <animated.group position={[-0.8, 3.56, -1.7]}
                           opacity={cWTextAnimation.opacity}>
             <Text color="#ffffff" font="/RobotoMonoBold.ttf" fontSize={0.06} maxWidth={1.75} lineHeight={0.99} letterSpacing={0.01} textAlign={'left'}anchorX="center" anchorY="middle" castShadow>
             At Creature World, I helped with the creation of "The Travelling Creature" which was the product of connecting art with ever evolving technology with the aim of bringing people together. Later, I explored new creative paths with the design team, blending digital art and innovative concepts.
@@ -436,8 +436,8 @@ useEffect(() => {
           
         <EffectComposer enabled={hoverMagazine} autoClear={false}>
             <Outline
-              edgeStrength={3} // the edge strength
-              visibleEdgeColor={0xffffff} // the color of visible edges
+              edgeStrength={3}
+              visibleEdgeColor={0xffffff}
             />
         </EffectComposer>
           

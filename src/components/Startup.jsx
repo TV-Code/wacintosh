@@ -2,17 +2,13 @@ import React, { useState, useEffect } from 'react';
 import happyWac from '../assets/HappyWac.svg';
 import wacintosh from '../assets/Wacintosh.svg';
 import floppyDisk from '../assets/Save.svg';
-import bootSound from '../assets/BootSound.wav';
 
 const Startup = () => {
-    const [stage, setStage] = useState('happyWac'); // 'init', 'floppyInserted', 'happyMac'
-    const audio = new Audio(bootSound);
-
+    const [stage, setStage] = useState('happyWac');
     useEffect(() => {
         if (stage === 'floppyInserted') {
             setTimeout(() => {
                 setStage('happyWac');
-                audio.play();
             }, 1000);
         }
     }, [stage]);

@@ -1,4 +1,3 @@
-// RetroAnalogEffectComponent.js
 import React, { useEffect, useMemo, forwardRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { ShaderMaterial, Vector2, Uniform } from 'three';

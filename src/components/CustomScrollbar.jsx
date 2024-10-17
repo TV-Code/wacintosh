@@ -41,7 +41,7 @@ const CustomScrollbar = ({ orientation = 'horizontal', isTrash, isDragging }) =>
     alignItems: 'center',
     padding: 0,
     border: 'none',
-    backgroundSize: '32px 32px', // Slightly smaller than the container
+    backgroundSize: '32px 32px', 
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
   };

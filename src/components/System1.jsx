@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
-  closestCenter,
   DndContext,
   PointerSensor,
   useDroppable,
@@ -276,7 +275,6 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
 
   useEffect(() => {
     if (isLookingAtComputer && bootStage === 0) {
-      // Start boot sequence when user zooms in
       bootSequence();
     }
   }, [isLookingAtComputer]);
@@ -336,18 +334,16 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
 
   setIsMenuInteraction(true);
 
-  // Set the active menu item to highlight it
   setActiveMenuItem(itemName);
   menuStateRef.current.activeMenuItem = itemName;
 
-  // Delay the action slightly to allow the highlight to show
   setTimeout(() => {
     handleMenuItemClick(menuName, itemName);
 
     setTimeout(() => {
       setIsMenuInteraction(false);
-    }, 250); // Adjust the delay as needed
-  }, 100); // Adjust the delay as needed
+    }, 250);
+  }, 100);
 }, []);
 
   
@@ -384,7 +380,6 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
 
   const handleClick = (id, parentId = null, event) => {
     if (isMenuInteraction) {
-      // If a menu interaction is happening, ignore clicks on the desktop or icons
       return;
     }
     console.log("handleClick", id, parentId);
@@ -551,7 +546,7 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
   }, []);
 
   const constrainPosition = (position) => {
-    const ICON_SIZE = 72; // Adjust based on your icon size
+    const ICON_SIZE = 72;
     return {
       x: Math.max(0, Math.min(position.x, screenDimensions.width - ICON_SIZE)),
       y: Math.max(
@@ -595,7 +590,6 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
     handleClick(active.id, parentId);
     handleWindowFocus(parentId);
 
-    // Update the Z-index
     updateElementZIndex(active.id, false, false, false, parentId);
 
     let draggedIcon;
@@ -652,25 +646,17 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
 
     if (active.data.current?.type === "window") {
       const windowId = active.data.current.id;
-      console.log("Window drag ended for:", windowId);
-      console.log("Available windows:", Object.keys(openWindows));
 
       const initialPosition = active.data.current.initialWindowPosition || {
         x: 0,
         y: 0,
       };
-      console.log("Initial position:", initialPosition);
-      console.log("Delta:", delta);
 
-      // Calculate new position
       let newPosition = snapToGrid({
         x: initialPosition.x + delta.x,
         y: initialPosition.y + delta.y,
       });
 
-      console.log("New position:", newPosition);
-
-      // Update the window's position in state
       setOpenWindows((prev) => {
         return produce(prev, (draft) => {
           if (!draft[windowId]) {
@@ -1120,8 +1106,7 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
             });
             return updatedOpenWindows;
           });
-  
-          // Update related states only if we're actually emptying the trash
+
           updateTrashContents(newHiddenFiles);
           setOpenWindows(prev => ({
             ...prev,
@@ -1157,14 +1142,14 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
         />
         <div
           style={{
-            position: "fixed", // Changed from 'absolute' to 'fixed'
+            position: "fixed",
             left: "10px",
-            bottom: "10px", // Changed from 'top' to 'bottom'
+            bottom: "10px",
             backgroundColor: "rgba(0,0,0,0.0)",
             color: "white",
             padding: "5px",
             fontSize: "12px",
-            zIndex: 10000, // Increased z-index
+            zIndex: 10000,
           }}
         >
           <br />
@@ -1337,7 +1322,6 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
                 >
                   <a
                     href="#menu"
-                    // onClick={(e) => e.preventDefault()}
                     style={{
                       backgroundColor: activeMenuItem === item ? "black" : "white",
                       color: activeMenuItem === item ? "white" : "black",

@@ -15,10 +15,8 @@ const DraggableIcon = ({
   type,
   zIndex,
   name,
-  windowPosition,
   previewOnly = false,
   hidePreview = false,
-  items,
   isOpen = false,
 }) => {
   const isDroppable = type === 'folder' || type === 'trash';
@@ -149,7 +147,6 @@ const DraggableIcon = ({
 
   return (
     <>
-      {/* Regular Icon */}
       <div
         ref={combinedRef}
         style={{
@@ -164,15 +161,11 @@ const DraggableIcon = ({
       >
         {iconContent}
       </div>
-      
-      {/* Static Icon: Only when dragging and not in preview mode */}
       {isIconDragging && !previewOnly && (
         <div style={staticStyle} className={`${className} ${selected ? 'selected' : ''}`}>
           {iconContent}
         </div>
       )}
-      
-      {/* SVG Preview: Always render, but only show when dragging */}
       <svg
         style={{
           ...svgStyle,

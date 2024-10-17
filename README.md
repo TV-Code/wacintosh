@@ -4,7 +4,7 @@ Wacintosh is an interactive 3D recreation of the Macintosh 128k with System 1 OS
 
 ## Live Demo
 
-tv-code.github.io/digital-time-capsule
+tv-code.github.io/wacintosh
 
 ## Features
 
@@ -92,4 +92,4 @@ This project is licensed under the [MIT License](LICENSE).
 ## Acknowledgments
 
 - Inspiration: Apple Macintosh 128k
-- [List any other resources or individuals you'd like to acknowledge]
+- system1.css by sakofchit

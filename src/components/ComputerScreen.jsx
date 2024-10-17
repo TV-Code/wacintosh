@@ -7,7 +7,6 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import System1 from "./System1";
 import { useCameraControl } from "./CameraControlContext";
 
-// Helper function to get the iOS version from the user agent
 function getIOSVersion() {
   const ua = navigator.userAgent;
   const match = ua.match(/OS (\d+)_?(\d+)?/);
@@ -19,12 +18,11 @@ function getIOSVersion() {
   return null;
 }
 
-// Function to detect the browser and platform
 function getBrowserDetails() {
   const ua = navigator.userAgent;
   const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-  const isChrome = /Chrome/.test(ua) && !/Edge|Edg/.test(ua);  // Distinguish Chrome from Edge
-  const isSafari = /^((?!chrome|android).)*safari/i.test(ua) && !isChrome;  // Safari but not Chrome
+  const isChrome = /Chrome/.test(ua) && !/Edge|Edg/.test(ua); 
+  const isSafari = /^((?!chrome|android).)*safari/i.test(ua) && !isChrome; 
   const safariVersionMatch = ua.match(/Version\/(\d+(\.\d+)?).*Safari/);
   const safariVersion = safariVersionMatch ? parseFloat(safariVersionMatch[1]) : null;
   const iOSVersion = getIOSVersion();
@@ -53,8 +51,6 @@ function canUseHtmlComponent(browserDetails) {
   if (isSafari && safariVersion <= 17.6) {
     return false;  // Desktop Safari version 17.6 and below do not support transforms
   }
-
-  // For desktop Chrome, assume transforms are supported
   return true;
 }
 
@@ -94,13 +90,12 @@ export default function ComputerScreen({ isLookingAtComputer }) {
     y: 0,
   });
 
-  // Trigger a re-render after mounting
   useEffect(() => {
     if (isLookingAtComputer) {
       const timer = setTimeout(() => {
         setHtmlKey((prevKey) => prevKey + 1);
         setRenderHtml(true);
-      }, 750); // Adjust delay as needed
+      }, 750);
 
       return () => clearTimeout(timer);
     } else {
