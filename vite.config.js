@@ -6,7 +6,7 @@ import svgr from 'vite-plugin-svgr'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/digital-time-capsule/',
+  base: '/wacintosh/',
   build: {
     outDir: 'build',
   },
