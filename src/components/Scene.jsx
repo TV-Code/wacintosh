@@ -143,34 +143,34 @@ export function Scene(props) {
   }
 };
 
-const handleCreatureWorldClick = () => {
-  const newIsLookingAtCW = !isLookingAtCW;
-  setIsLookingAtCW(newIsLookingAtCW);
-  setShowCWText(newIsLookingAtCW);
+// const handleCreatureWorldClick = () => {
+//   const newIsLookingAtCW = !isLookingAtCW;
+//   setIsLookingAtCW(newIsLookingAtCW);
+//   setShowCWText(newIsLookingAtCW);
 
-  const targetPos = newIsLookingAtCW ? [-1.1, 3.3, -0.31] : [0, 2, 5]; // Adjust these values based on the exact position
+//   const targetPos = newIsLookingAtCW ? [-1.1, 3.3, -0.31] : [0, 2, 5]; // Adjust these values based on the exact position
 
-  api.start({
-    cameraPos: targetPos,
-    onChange: () => setIsCameraMoving(true),
-    onRest: () => setIsCameraMoving(false)
-  });
-};
+//   api.start({
+//     cameraPos: targetPos,
+//     onChange: () => setIsCameraMoving(true),
+//     onRest: () => setIsCameraMoving(false)
+//   });
+// };
 
-const handleMagazineClick = () => {
-  if (!isLookingAtMagazine) {
-    const newIsLookingAtMagazine = !isLookingAtMagazine;
-    setIsLookingAtMagazine(newIsLookingAtMagazine);
+// const handleMagazineClick = () => {
+//   if (!isLookingAtMagazine) {
+//     const newIsLookingAtMagazine = !isLookingAtMagazine;
+//     setIsLookingAtMagazine(newIsLookingAtMagazine);
 
-    const targetPos = newIsLookingAtMagazine ? [-.44, 1.3, 0.43] : [0, 2, 5]; // Adjust these values based on the exact position
+//     const targetPos = newIsLookingAtMagazine ? [-.44, 1.3, 0.43] : [0, 2, 5]; // Adjust these values based on the exact position
 
-    api.start({
-      cameraPos: targetPos,
-      onChange: () => setIsCameraMoving(true),
-      onRest: () => setIsCameraMoving(false)
-    });
-  }
-};
+//     api.start({
+//       cameraPos: targetPos,
+//       onChange: () => setIsCameraMoving(true),
+//       onRest: () => setIsCameraMoving(false)
+//     });
+//   }
+// };
 
 // const handlePageTurn = (pageNumber) => {
 //   const animationName = `Plane.010Action${pageNumber ? `.${pageNumber.toString().padStart(3, '0')}` : ''}`;
@@ -217,14 +217,14 @@ useFrame(() => {
       const computerPosition = new THREE.Vector3(0.58, computerPositionHeight, -1.877);
       controls.current.target.copy(computerPosition);
       controls.current.object.lookAt(computerPosition);
-    } else if (isLookingAtCW) {
-      const cWPosition = new THREE.Vector3(-1.1, 2.7, -2.7);
-      controls.current.target.copy(cWPosition);
-      controls.current.object.lookAt(cWPosition);
-    } else if (isLookingAtMagazine) {
-      const magazinePosition = new THREE.Vector3(-.63, 0.3, 0.27);
-      controls.current.target.copy(magazinePosition);
-      controls.current.object.lookAt(magazinePosition);
+    // } else if (isLookingAtCW) {
+    //   const cWPosition = new THREE.Vector3(-1.1, 2.7, -2.7);
+    //   controls.current.target.copy(cWPosition);
+    //   controls.current.object.lookAt(cWPosition);
+    // } else if (isLookingAtMagazine) {
+    //   const magazinePosition = new THREE.Vector3(-.63, 0.3, 0.27);
+    //   controls.current.target.copy(magazinePosition);
+    //   controls.current.object.lookAt(magazinePosition);
     } else if (isEnvBuilt) {
       setTimeout(() => {
         controls.current.target.set(0, 1, 0);
@@ -245,6 +245,8 @@ useEffect(() => {
         ref={controls}
         enabled={!isCameraMoving || !isEnvBuilt}
         enableRotate={true}
+        enableZoom={false} 
+        enablePan={false}
         maxPolarAngle={Math.PI / 2.3} // Limit vertical rotation to 90 degrees
         minPolarAngle={0} // Limit vertical rotation to 0 degrees
         maxAzimuthAngle={Math.PI / 1.8} // Limit horizontal rotation to 90 degrees
@@ -253,7 +255,7 @@ useEffect(() => {
       />
     <group ref={groupRef} {...props} dispose={null}>
     <Selection>
-      { !isEnvBuilt || (isLookingAtComputer || hoverCW || hoverMagazine) ? <></> :
+      { !isEnvBuilt || (isLookingAtComputer) ? <></> :
       <>
       <EffectComposer enabled={hover} autoClear={false}>
           <Outline
@@ -382,7 +384,7 @@ useEffect(() => {
       )}
       { showGroup1 && ( 
       <>
-      <Selection>
+      {/* <Selection>
         { !isLookingAtCW && !hover && !hoverMagazine && ( 
         <EffectComposer enabled={hoverCW} autoClear={false}>
             <Outline
@@ -391,8 +393,8 @@ useEffect(() => {
             />
         </EffectComposer>
       )}
-      <Select enabled>
-        <group onClick={handleCreatureWorldClick} onPointerEnter={() => setHoverCW(true)} onPointerLeave={() => setHoverCW(false)} >
+      <Select enabled> */}
+        <group>
           <group name="Creature" position={[-0.921, 2.162, -1.598]} rotation={[0, -1.264, 0]}>
             <mesh name="Cube509_Cube002" geometry={nodes.Cube509_Cube002.geometry} material={creatureMaterial} />
             <mesh name="Cube509_Cube002_1" geometry={nodes.Cube509_Cube002_1.geometry} material={creatureMaterial} />
@@ -410,7 +412,7 @@ useEffect(() => {
             <mesh name="Cube023_1" geometry={nodes.Cube023_1.geometry} material={textureMaterial} />
           </group>
         </group>
-      </Select>
+      {/* </Select>
         </Selection>
         {showCWText && (
           <>
@@ -443,19 +445,19 @@ useEffect(() => {
           
         </>
       )}
-      <Select enabled>
-        <group onClick={handleMagazineClick} onPointerEnter={() => setHoverMagazine(true)} onPointerLeave={() => setHoverMagazine(false)}>
-        <group onClick={() => handlePageTurn(0)} name="Plane010" position={[-0.527, 0.959, 0.348]} rotation={[0, 0.873, 0.032]} >
+      <Select enabled> */}
+        {/* <group onClick={handleMagazineClick} onPointerEnter={() => setHoverMagazine(true)} onPointerLeave={() => setHoverMagazine(false)}> */}
+        <group  name="Plane010" position={[-0.527, 0.959, 0.348]} rotation={[0, 0.873, 0.032]} >
           <mesh name="Plane024" geometry={nodes.Plane024.geometry} material={textureMaterial} />
           <mesh name="Plane024_1" geometry={nodes.Plane024_1.geometry} material={textureMaterial} />
         </group>
-        <mesh onClick={() => handlePageTurn(1)} name="Plane014" geometry={nodes.Plane014.geometry} material={textureMaterial} position={[-0.527, 0.959, 0.348]} rotation={[0, 0.873, 0.024]}/>
-        <mesh onClick={() => handlePageTurn(2)} name="Plane018" geometry={nodes.Plane018.geometry} material={textureMaterial} position={[-0.527, 0.959, 0.348]} rotation={[0, 0.873, 0.016]}/>
-        <mesh onClick={() => handlePageTurn(3)} name="Plane022" geometry={nodes.Plane022.geometry} material={textureMaterial} position={[-0.527, 0.959, 0.348]} rotation={[0, 0.873, 0.008]}/>
+        <mesh  name="Plane014" geometry={nodes.Plane014.geometry} material={textureMaterial} position={[-0.527, 0.959, 0.348]} rotation={[0, 0.873, 0.024]}/>
+        <mesh  name="Plane018" geometry={nodes.Plane018.geometry} material={textureMaterial} position={[-0.527, 0.959, 0.348]} rotation={[0, 0.873, 0.016]}/>
+        <mesh  name="Plane022" geometry={nodes.Plane022.geometry} material={textureMaterial} position={[-0.527, 0.959, 0.348]} rotation={[0, 0.873, 0.008]}/>
         <mesh name="Plane023" geometry={nodes.Plane023.geometry} material={textureMaterial} position={[-0.527, 0.959, 0.348]} rotation={[0, 0.873, 0]}/>
-        </group>
+        {/* </group>
         </Select>
-        </Selection> 
+        </Selection>  */}
       <group name="Entertainment_System" position={[1.54, 1.246, -1.084]} rotation={[0, -0.386, 0]}>
         <mesh name="Plane011" geometry={nodes.Plane011_1.geometry} material={textureMaterial} />
         <mesh name="Plane011_1" geometry={nodes.Plane011_1.geometry} material={textureMaterial} />
@@ -497,8 +499,6 @@ useEffect(() => {
         <mesh name="Sphere002" geometry={nodes.Sphere002.geometry} material={textureMaterial} position={[0.26, 0.484, 0.003]} rotation={[0, 0, 0.358]} />
         <mesh name="Sphere003" geometry={nodes.Sphere003.geometry} material={textureMaterial} position={[0.161, 0.541, 0.003]} rotation={[0, 0, 1.056]} />
       </mesh>
-      </>
-      )}
       </>
       )}
     </group>
