@@ -843,7 +843,7 @@ Your ingenuity preserves the legacy we've endeavored to create. We are grateful 
         setOpenWindows((prevOpenWindows) => {
           return produce(prevOpenWindows, (draft) => {
             for (let windowId in draft) {
-              if (draft[windowId].isOpen) {
+              if (draft[windowId]?.isOpen) {
                 const windowIcon = findIconById(newIcons, windowId);
                 if (windowIcon) {
                   draft[windowId].items = windowIcon.items || [];
